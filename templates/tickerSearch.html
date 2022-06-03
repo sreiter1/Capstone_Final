@@ -1,0 +1,13 @@
+	<p>Search for a ticker or company in the database:</p>
+	
+	<form method="POST" action="">
+	  {{ searchForm.hidden_tag() }}
+	  <p>Search By:  &emsp;&emsp;
+	  
+	  {% for subfield in searchForm.radio %}
+		{{ subfield }}  {{ subfield.label }}&emsp;&emsp;&emsp;
+	  {% endfor %}</p>
+	  
+	  <p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;<input  type="text" placeholder="Ticker Search..." name="searched">
+	  <button type="submit" name="submitSearch">Submit</button></p>
+	</form>

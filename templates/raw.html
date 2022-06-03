@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+
+{% include 'header.html' %}
+
+<body>
+
+
+{% include 'topMenu.html' %}
+
+
+<!-- Add a background color and large text to the whole page -->
+<div class="w3-sand w3-grayscale w3-large">
+
+<!-- About Container -->
+<div class="w3-container" id="about">
+  <div class="w3-content" style="max-width:900px">
+    <h2 class="w3-center w3-padding-32"><span class="w3-tag w3-wide"></span></h2>
+    <h2 class="w3-center w3-padding-small"><span class="w3-tag w3-wide">Raw Data</span></h2>
+	<br>
+    <h4 class="w3-left-align w3-padding-small"><span>Description:</span></h4>
+	<p>The Raw Data function returns the daily open, high, low, close, and volume of the selected ticker symbol. If the extended option is selected, then the additional indicators and buy/sell triggers are returned as well.</p>
+	
+		<div>
+		  
+			<form method="POST" action="" id="predictForm">
+			    {{ rawForm.hidden_tag()  }}
+			    <p>Data for Ticker: <input type="hidden" placeholder="Symbol Data Search..." name="symbol", id="symbol"></p>
+			    
+				<table style="width:100%">
+				<thead><tr><th align="left">Indicators: </th></tr>
+				<tr><th style="width:33.333%"></th><th style="width:33.333%"></th><th style="width:33.333%"></th></thead>
+				<tbody>
+					{% set ns = namespace(x=0) %}
+					{% for subfield in rawForm.indicator %}
+					    <td>{{ subfield }}   {{subfield.label}}</td>
+						{% set ns.x = ns.x + 1 %}
+						{% if ns.x % 3 == 0 %}</tr><tr>{% endif %}
+				    {% endfor %}
+				</tbody></table>
+				
+				
+				<table style="width:100%">
+				<thead><tr><th align="left">Extra Features: </th></tr>
+				<tr><th style="width:25%"></th><th style="width:25%"></th><th style="width:25%"></th><th style="width:25%"></th></tr></thead>
+				<tbody>
+					{% set ns = namespace(x=0) %}
+					{% for subfield in rawForm.extras %}
+					    <td>{{ subfield }}   {{subfield.label}}</td>
+						{% set ns.x = ns.x + 1 %}
+						{% if ns.x % 4 == 0 %}</tr><tr>{% endif %}
+				    {% endfor %}
+				</tbody></table>
+				<br>
+				<input type="hidden" placeholder="Symbol Data Search..." name="symbol", id = "symbol">
+		        <input type="hidden" name="submitTicker"></input></p>
+			</form>
+			
+			<p>{% include 'tickerSearch.html' %}</p>
+			{% include 'tickerSearchResults.html' %}
+		</div>
+		
+		<div width="100%", align="center">
+			{% include 'stockPriceData.html' %}
+		</div>
+
+		<p>{% include 'rawAPI.html' %}</p>
+			
+	<br>
+  </div>
+</div>
+</div>
+
+
+
+
+
+
+
+
+
+<!-- Footer -->
+<footer class="w3-center w3-light-grey w3-padding-48 w3-large">
+  <p>Powered by <a href="https://www.w3schools.com/w3css/default.asp" title="W3.CSS" target="_blank" class="w3-hover-text-green">w3.css</a></p>
+</footer>
+
+<script>
+// Tabbed Menu
+function openMenu(evt, menuName) {
+  var i, x, tablinks;
+  x = document.getElementsByClassName("menu");
+  for (i = 0; i < x.length; i++) {
+    x[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("tablink");
+  for (i = 0; i < x.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" w3-dark-grey", "");
+  }
+  document.getElementById(menuName).style.display = "block";
+  evt.currentTarget.firstElementChild.className += " w3-dark-grey";
+}
+document.getElementById("myLink").click();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!-- HTML FORM SEARCH BAR -->
+<form action="index.php" method="post">
+<label for="enteredterm">Enter a Weight-class or a Nationality:</label>
+<input type="text" name="enteredterm">
+<input type="submit" name="search">
+</form>
+<!-- HTML FORM SEARCH BAR -->
+
+if(isset($_POST['search'])){
+$enteredterm = $_POST['enteredterm'];
+
+if ($enteredterm ===""){
+echo "error, enter something.";
+} else {
+
+$stmt = $conn->prepare("SELECT * FROM boxer WHERE weightclass LIKE     :enteredterm OR nationality LIKE :enteredterm or lastname LIKE :enteredterm     ORDER BY year");
+$stmt->bindValue(':enteredterm','%'.$enteredterm.'%');
+$stmt->execute();
+$count= $stmt->rowCount();
+
+echo "You entered ".$enteredterm." and returned ";
+if($count <= 1){
+echo $count." result.";
+}else{
+echo $count." results.";
+}
+// loop displays loop
+while ($boxer = $stmt->fetch(PDO::FETCH_OBJ))
+{ echo "<ul>";
+echo "<a href='details.php?idboxer=".$boxer->idboxer."'>";
+echo "<li>".$boxer->firstname." ".$boxer->lastname."</li>";
+echo "</a>";
+echo "</ul>"; }

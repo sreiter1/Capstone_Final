@@ -1,0 +1,24 @@
+
+
+#companyList {
+  font-family: Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#companyList td, #companyList th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#companyList tr:nth-child(even){background-color: #f2f2f2;}
+
+#companyList tr:hover {background-color: #ccc;}
+
+#companyList th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #04AA6D;
+  color: white;
+}
