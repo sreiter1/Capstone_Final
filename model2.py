@@ -18,7 +18,6 @@ import pickle
 import datetime as dt
 import os
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import OneHotEncoder
 import time
 
 import math
@@ -45,6 +44,14 @@ from pylab import rcParams
 
 
 warnings.filterwarnings('ignore')
+
+
+class noPriceData(Exception):
+    # raised when the program detects that the call limit was exceeded, 
+    # either because the limit set in 'getData' is exceeded or if the API 
+    # returns a specific error.
+    pass
+
 
     
     
@@ -127,11 +134,20 @@ class MLmodels:
         
         print("Loading file: " + self.prevTrainingData)
         try: 
-            trainHist = pd.read_csv(self.prevTrainingData, header = 13)
+            f = open(self.prevTrainingData, "r")
+            readfile = f.read()
+            f.close()
+            
+            look_back = readfile.split("\n")[1]
+            look_back = int(look_back.split(" = ")[1].split(",")[0])
+            predLen = readfile.split("\n")[2]
+            predLen = int(predLen.split(" = ")[1].split(",")[0])
+            
+            trainHist = pd.read_csv(self.prevTrainingData, header = 15)
         except:
             print("Failed to load previous training data.  Check ./LSTM/ to verify that training_data.csv is present.")
         
-        return trainHist
+        return trainHist, look_back, predLen
     
     
     
@@ -152,13 +168,17 @@ class MLmodels:
         else:
             trainSize = 0.9
         
-
-        trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
+        try:
+            trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
                                 self.getLSTMTestTrainData(look_back = look_back,
                                                           ticker = ticker, 
                                                           trainSize = trainSize, 
                                                           trainDate = trainDate,
                                                           predLen = predLen)
+        except (noPriceData):
+            print("\nNo Data associated with ticker '" + ticker + "'.")
+            return None, None, None, [None, None, None]
+        
         
         evaluation = self.lstm_model.evaluate(testX, [trainYrh, trainYrl, testYc])
         prediction = self.lstm_model.predict(testX)
@@ -176,9 +196,11 @@ class MLmodels:
                    trainSize = -1, 
                    trainDate = "01-01-2020",
                    loadPrevious = True,
-                   predLen = 30):
+                   predLen = 30,
+                   storeTrainingDataInRAM = False):
         
         np.random.seed(randomSeed)
+        trainingData = {}
         
         startTime = dt.datetime.now()
         self.trainingTimes   = []
@@ -197,7 +219,7 @@ class MLmodels:
         
         # Save file for the training data
         if loadPrevious:
-            self.LSTM_load()
+            trainHist, look_back, predLen = self.LSTM_load()
             prevItter = int(self.modelToLoad.split("_")[-1].split(".")[0])
             dataFile  = open(self.prevTrainingData, 'a')
             folderName = "\\".join(self.prevTrainingData.split("\\")[:-1]) + "\\"
@@ -210,6 +232,8 @@ class MLmodels:
             saveString = folderName + "training_data.csv"
             dataFile = open(saveString, 'w')
             dataFile.write("Saved Metrics:\n"
+                           "Look Back = " + str(look_back) + "\n"
+                           "Prediction Length = " + str(predLen) + "\n"
                            "MeanSquaredError = 'mse'\n" + 
                            "MeanAbsolutePercentageError = 'mape'\n" + 
                            "AUC = 'auc'\n" + 
@@ -226,7 +250,7 @@ class MLmodels:
             dataFile.write(",,,training performance\nticker,itteration,run time,") 
             for key in trainHistKeys:
                 dataFile.write(key + ",")
-            dataFile.write("\n")    
+            dataFile.write("learning_rate\n")    
             dataFile.close()
             
         
@@ -235,6 +259,7 @@ class MLmodels:
             tickerList = self.analysis._tickerList
             
         if tickerList == []:
+            print("\nLoading default ticker data...\n")
             self.analysis.filterStocksFromDataBase(dailyLength = 1250, 
                                                     maxDailyChange = 50, 
                                                     minDailyChange = -50, 
@@ -250,9 +275,9 @@ class MLmodels:
         short_model_summary = "\n".join(stringlist)
         
         if not loadPrevious:
-            saveString = folderName + "tickerList - " + str(len(tickerList)) + ".txt"
-            saveString = saveString.replace(":", ".")
-            tickerFile = open(saveString, 'w')
+            tickString = folderName + "tickerList - " + str(len(tickerList)) + ".txt"
+            tickString = tickString.replace(":", ".")
+            tickerFile = open(tickString, 'w')
             tickerFile.write(short_model_summary)
             tickerFile.write("\n\n-------------------------------------\n\n\nTickers included for training:\n\n")
             tickerFile.write(str(tickerList))
@@ -269,14 +294,27 @@ class MLmodels:
                 
                 
                 print(trainDate)
-                trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
-                                self.getLSTMTestTrainData(look_back = look_back,
-                                                          ticker = ticker, 
-                                                          trainSize = trainSize, 
-                                                          trainDate = trainDate,
-                                                          predLen = predLen)
-                                
-                                
+                
+                
+                if ticker in trainingData.keys():
+                    trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = trainingData[ticker]
+                else:
+                    try:
+                        trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
+                                    self.getLSTMTestTrainData(look_back = look_back,
+                                                              ticker = ticker, 
+                                                              trainSize = trainSize, 
+                                                              trainDate = trainDate,
+                                                              predLen = predLen)
+                        
+                        if storeTrainingDataInRAM:
+                            trainingData[ticker] = (trainX, trainYrh, trainYrl, trainYc, 
+                                                    testX, testYrh, testYrl, testYc)
+                        
+                    except (noPriceData):
+                        print("\nNo Data associated with ticker '" + ticker + "'.")
+                        continue
+                
                 
                 print("\nTraining on " + ticker.rjust(6) + "  (" + str(tickerCounter) + " of " + tickerTotal \
                       + "),  Itteration (" + str(itteration + 1) + " of " + str(fullItterations) \
@@ -311,11 +349,12 @@ class MLmodels:
                                      str(dt.datetime.now()) + ","
                     else:
                         dataString += ",,,"
-                        
+                    
+                    
                     for key in trainHistKeys:
                         dataString += str(trainHist.history[key][i]) + ","
-                        
-                    dataString = dataString[:-1] + "\n"
+                    
+                    dataString += str(mod.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
                     
                 
                 dataFile = open(saveString, 'a')
@@ -414,7 +453,7 @@ class MLmodels:
         lenInput = len(inputs)
         
         
-        if trainSize < 1 and trainSize > 0:
+        if trainSize <= 1 and trainSize > 0:
             lenTrain = int(lenInput * trainSize)
             if trainSize < 0.5:
                 warnings.warn("testSize is declared to be less than half of the dataset; results may not be useful.")
@@ -463,6 +502,10 @@ class MLmodels:
                                                  extras = ["HIGH", "LOW", "ADJRATIO", "VOLUME",
                                                            "IDEAL_HIGH", "IDEAL_LOW", "IDEAL_TRIG"])
         
+        if len(loadedData) == 0:
+            raise noPriceData("No Price Data associated with ticker '" + ticker + "'.")
+            
+        
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
         
@@ -470,11 +513,11 @@ class MLmodels:
         if trainSize == -1:
             trainLen = len(loadedData.loc[loadedData["recordDate"] < pd.to_datetime(trainDate)])
         elif 0 < trainSize and trainSize <= 1:
-            trainLen = int(trainSize * len(loadedData["recordDate"]))
+            trainLen = int(trainSize * (len(loadedData["recordDate"]) - look_back))
         elif trainSize > 1:
-            trainLen = min(int(trainSize), len(loadedData["recordDate"]-1))
+            trainLen = min(int(trainSize), len(loadedData["recordDate"] - 1))
         else:
-            trainLen = int(0.8 * len(loadedData["recordDate"]))
+            trainLen = int(0.8 * (len(loadedData["recordDate"]) - look_back))
             
         
         # ensure that the adjustment ratio does not cause a div-by-0 error
@@ -507,7 +550,7 @@ class MLmodels:
                                                             outputFrame["trig"].to_numpy().reshape(-1,1), 
                                                             look_back = look_back, 
                                                             trainSize = trainLen,
-                                                            predLen = 30)
+                                                            predLen = predLen)
         
         
         # ----------------------------------------------
@@ -1030,17 +1073,18 @@ if __name__ == "__main__":
                                           minDailyVolume = 5000000)
     
     
-    # mod.LSTM_train(EpochsPerTicker = 20, 
-    #                 fullItterations = 10, 
-    #                 loadPrevious = False,
-    #                 look_back = 250, 
-    #                 trainSize = 0.9,
-    #                 predLen = 30)
+    mod.LSTM_train(EpochsPerTicker = 1, 
+                   fullItterations = 1, 
+                   loadPrevious = False,
+                   look_back = 250, 
+                   trainSize = 0.9,
+                   predLen = 30, 
+                   storeTrainingDataInRAM = False)
     
-    data = mod.getLSTMTestTrainData(ticker = "A",
-                                    look_back=250,
-                                    trainSize=0.9,
-                                    predLen = 30)
+    # data = mod.getLSTMTestTrainData(ticker = "AMZN",
+    #                                 look_back=250,
+    #                                 trainSize=0.9,
+    #                                 predLen = 30)
     
     # data = mod.LSTM_load()
     # prediction, evaluation, testX, [testYr, testYc] = mod.LSTM_eval(ticker = "TSLA", evaluate = False)
@@ -1049,10 +1093,6 @@ if __name__ == "__main__":
     # tree, endData, mets = mod.Trees("A", savePlt=True, evaluate = False)
     # lr_model = mod.linearRegression("A")
     # model_autoARIMA, fitted, endData = mod.autoARIMA("TSLA", evaluate=False, predLen=100, loadFromSave = False)
-    
-    
-    
-    
     
     
     

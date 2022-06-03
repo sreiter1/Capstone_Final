@@ -612,16 +612,26 @@ class analysis:
         # https://www.sqlitetutorial.net/sqlite-describe-table/
         schemaText = self._cur.execute("""SELECT sql 
                                           FROM sqlite_schema 
-                                          WHERE name = 'daily_adjusted';""").fetchall()
-        schemaText = schemaText[0][0] # convert the returned tuple to an executable SQL string command
-        schemaText = schemaText[schemaText.find('('):]
+                                          WHERE name = 'daily_adjusted'
+                                             OR name = 'summary_data'
+                                             OR name = 'ticker_symbol_list';""").fetchall()
+        
+        # convert the returned tuple to an executable SQL string command
+        summaryText = schemaText[0][0][schemaText[0][0].find('('):]
+        symbolText  = schemaText[1][0][schemaText[1][0].find('('):]
+        dailyText   = schemaText[2][0][schemaText[2][0].find('('):]
         
         
         # create a new database and add a copy of the time series table schema
         self._cur.execute("ATTACH DATABASE ? AS newDB;", [newDBName])
         if delCurrentTable:
             self._cur.execute("DROP TABLE IF EXISTS newDB.daily_adjusted;")
-        self._cur.execute("CREATE TABLE newDB.daily_adjusted" + schemaText + ";")
+            self._cur.execute("DROP TABLE IF EXISTS newDB.summary_data;")
+            self._cur.execute("DROP TABLE IF EXISTS newDB.ticker_symbol_list;")
+            
+        self._cur.execute("CREATE TABLE newDB.daily_adjusted" + dailyText + ";")
+        self._cur.execute("CREATE TABLE newDB.summary_data" + summaryText + ";")
+        self._cur.execute("CREATE TABLE newDB.ticker_symbol_list" + symbolText + ";")
         
         n = 0
         for ticker in self._tickerList:
@@ -629,6 +639,14 @@ class analysis:
             print("\rCopying ticker:  " + ticker.rjust(6) + "   (" + str(n).rjust(5) + " of " + str(len(self._tickerList)).ljust(6) + ").", end = "")
             self._cur.execute("""INSERT INTO newDB.daily_adjusted 
                                  SELECT * FROM main.daily_adjusted
+                                 WHERE ticker_symbol = ?;""", [ticker])
+                                 
+            self._cur.execute("""INSERT INTO newDB.summary_data 
+                                 SELECT * FROM main.summary_data
+                                 WHERE ticker_symbol = ?;""", [ticker])
+                                 
+            self._cur.execute("""INSERT INTO newDB.ticker_symbol_list 
+                                 SELECT * FROM main.ticker_symbol_list
                                  WHERE ticker_symbol = ?;""", [ticker])
         
         self.DB.commit()
@@ -707,15 +725,17 @@ class analysis:
 
 if __name__ == "__main__":
     ana = analysis()
-    data = ana.filterStocksFromDataBase(dailyLength = 1, 
-                                        minDailyVolume = 1)
+    data = ana.filterStocksFromDataBase(dailyLength = 1250, 
+                                          maxDailyChange = 50, 
+                                          minDailyChange = -50, 
+                                          minDailyVolume = 500000)
     
     print("Number of stocks selected:  " + str(len(ana._tickerList)) + ".             ")
     
     # new = ana.storeTriggers(tickerList = ana._tickerList)
     # data = ana.plotIndicators(tickerList = ana._tickerList)
     # ana.copyTimeSeriesToCSV("copyOfDB.csv")
-    ana.copyTimeSeriesToNewDatabase("stockDB_partial.db")
+    schemaText = ana.copyTimeSeriesToNewDatabase("stockDB_partial.db")
     
     
     
