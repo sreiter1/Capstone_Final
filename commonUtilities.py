@@ -12,7 +12,7 @@ import pandas as pd
 
 from flask import Flask, jsonify, render_template, flash, request, redirect, url_for
 from flask_wtf import FlaskForm
-import model
+import capstoneModels
 from wtforms import StringField, SubmitField, RadioField
 from wtforms.validators import InputRequired
 import os

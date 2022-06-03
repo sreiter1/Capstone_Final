@@ -1,7 +1,7 @@
 #!flask/bin/python
 from flask import Flask, jsonify, render_template, flash, request, redirect, url_for
 from flask_wtf import FlaskForm, Form
-import model
+import capstoneModels
 from wtforms import StringField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets
 from wtforms.validators import InputRequired
 import os
@@ -335,9 +335,9 @@ class flaskFunctions:
     
     
     
-mod = model.MLmodels(dataBaseSaveFile = "./stockData.db", 
-                     dataBaseThreadCheck = False,
-                     splitDate = "2020-01-01")
+mod = capstoneModels.MLmodels(dataBaseSaveFile = "./stockData.db", 
+                              dataBaseThreadCheck = False,
+                              splitDate = "2020-01-01")
 
 flaskFunc = flaskFunctions(mod)
 
