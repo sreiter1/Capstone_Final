@@ -1,0 +1,4 @@
+name: capstone
+channels:
+  - defaults
+prefix: D:\Anaconda\envs\capstone\envs\capstone
