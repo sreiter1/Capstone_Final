@@ -79,7 +79,7 @@ class MLmodels:
         self.indicatorList = commonUtilities.conversionTables.indicatorList
         
         self.analysis   = analysis.analysis(dataBaseSaveFile = dataBaseSaveFile, 
-                                             dataBaseThreadCheck = dataBaseThreadCheck)
+                                            dataBaseThreadCheck = dataBaseThreadCheck)
         self.indicators = IndicatorsAndFilters.filterData(dataBaseSaveFile = dataBaseSaveFile, 
                                                           dataBaseThreadCheck = dataBaseThreadCheck)
         self.stockdata  = StockData.getAlphaVantageData(dataBaseSaveFile = dataBaseSaveFile, 
@@ -354,7 +354,7 @@ class MLmodels:
                     for key in trainHistKeys:
                         dataString += str(trainHist.history[key][i]) + ","
                     
-                    dataString += str(mod.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
+                    dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
                     
                 
                 dataFile = open(saveString, 'a')
