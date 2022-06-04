@@ -89,17 +89,23 @@ class MLmodels:
         self.testYr_out = [] # for the LSTM model
         self.testYc_out = [] # for the LSTM model
         
+        if "win" in sys.platform:
+            self.folderSeparator = "\\"
+        elif "linux" in sys.platform:
+            self.folderSeparator = "/"
+        
     
     
     
     def LSTM_load(self, modelToLoad = ""):
         CWDreset = os.getcwd()
         
+        
         if modelToLoad == "":
             os.chdir("static")
             os.chdir("LSTMmodels")
             os.chdir(max(os.listdir()))
-            folderName = os.getcwd() + "\\"
+            folderName = os.getcwd() + self.folderSeparator
             fileList = os.listdir()
             modelToLoad = fileList[0]
             for file in fileList:
@@ -112,8 +118,8 @@ class MLmodels:
             self.prevTrainingData = folderName + prevTrainingData
             
         else:
-            folders = modelToLoad.split("\\")[:-1]
-            self.prevTrainingData = "\\".join(folders) + "\\"
+            folders = modelToLoad.split(self.folderSeparator)[:-1]
+            self.prevTrainingData = self.folderSeparator.join(folders) + self.folderSeparator
             os.chdir(self.prevTrainingData)
             fileList = os.listdir()
             for file in fileList:
