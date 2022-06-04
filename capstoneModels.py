@@ -96,7 +96,8 @@ class MLmodels:
         CWDreset = os.getcwd()
         
         if modelToLoad == "":
-            os.chdir("LSTM")
+            os.chdir("static")
+            os.chdir("LSTMmodels")
             os.chdir(max(os.listdir()))
             folderName = os.getcwd() + "\\"
             fileList = os.listdir()
@@ -129,7 +130,7 @@ class MLmodels:
             
             
         except:
-            raise ValueError("Failed to load lstm model.  Check ./LSTM/ to verify that models exist.")
+            raise ValueError("Failed to load lstm model.  Check ./static/LSTMmodels/ to verify that models exist.")
         
         
         print("Loading file: " + self.prevTrainingData)
@@ -145,7 +146,7 @@ class MLmodels:
             
             trainHist = pd.read_csv(self.prevTrainingData, header = 15)
         except:
-            print("Failed to load previous training data.  Check ./LSTM/ to verify that training_data.csv is present.")
+            print("Failed to load previous training data.  Check ./static/LSTMmodels/ to verify that training_data.csv is present.")
         
         return trainHist, look_back, predLen
     
@@ -221,8 +222,9 @@ class MLmodels:
         if loadPrevious:
             trainHist, look_back, predLen = self.LSTM_load()
             prevItter = int(self.modelToLoad.split("_")[-1].split(".")[0])
-            dataFile  = open(self.prevTrainingData, 'a')
+            saveString = self.prevTrainingData
             folderName = "\\".join(self.prevTrainingData.split("\\")[:-1]) + "\\"
+            
         else:
             self.createLSTMNetwork(look_back = look_back)
             prevItter = 0
@@ -376,6 +378,10 @@ class MLmodels:
     
     
     
+    def learnRateLSTM(self, initRate = 0.05, learningSteps = 1):
+        pass
+    
+    
     
     def createLSTMNetwork(self, look_back, predLen = 30):
         # Model 1:
@@ -409,7 +415,7 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        opt = optimizers.Adam(learning_rate = 0.05)
+        opt = optimizers.Adam()
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_reg_h" : "mean_squared_error", 
                                         "out_reg_l" : "mean_squared_error",
@@ -1075,11 +1081,11 @@ if __name__ == "__main__":
     
     mod.LSTM_train(EpochsPerTicker = 1, 
                    fullItterations = 1, 
-                   loadPrevious = False,
+                   # loadPrevious = False,
                    look_back = 250, 
                    trainSize = 0.9,
                    predLen = 30, 
-                   storeTrainingDataInRAM = False)
+                   storeTrainingDataInRAM = True)
     
     # data = mod.getLSTMTestTrainData(ticker = "AMZN",
     #                                 look_back=250,
@@ -1094,6 +1100,7 @@ if __name__ == "__main__":
     # lr_model = mod.linearRegression("A")
     # model_autoARIMA, fitted, endData = mod.autoARIMA("TSLA", evaluate=False, predLen=100, loadFromSave = False)
     
-    
+    # mod.analysis.filterStocksFromDataBase(dailyLength = 1250, maxDailyChange = 50, minDailyChange = -50, minDailyVolume = 5000000)
+    # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
     
