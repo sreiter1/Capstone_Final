@@ -230,12 +230,12 @@ class MLmodels:
             trainHist, look_back, predLen = self.LSTM_load()
             prevItter = int(self.modelToLoad.split("_")[-1].split(".")[0])
             saveString = self.prevTrainingData
-            folderName = "\\".join(self.prevTrainingData.split("\\")[:-1]) + "\\"
+            folderName = self.folderSeparator.join(self.prevTrainingData.split(self.folderSeparator)[:-1]) + self.folderSeparator
             
         else:
             self.createLSTMNetwork(look_back = look_back)
             prevItter = 0
-            folderName = "./static/LSTMmodels/" + str(startTime.replace(microsecond=0)) + "/"
+            folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)) + self.folderSeparator
             folderName = folderName.replace(":", ".")
             os.makedirs(folderName)
             saveString = folderName + "training_data.csv"
@@ -383,10 +383,6 @@ class MLmodels:
         dataFile.close()
         return 
     
-    
-    
-    def learnRateLSTM(self, initRate = 0.05, learningSteps = 1):
-        pass
     
     
     
