@@ -416,13 +416,15 @@ class MLmodels:
         
         # Model 3
         inLayer     = Input(shape = (look_back, 7))
-        hidden1     = LSTM(250,      name='LSTM',      activation = "sigmoid")(inLayer)
+        hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
         dropout1    = Dropout(0.2)(hidden1)
         hidden2     = Dense(1000,    name='dense1',    activation = "relu"   )(dropout1)
         dropout2    = Dropout(0.2)(hidden2)
-        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout2)
-        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout2)
-        outCat      = Dense(predLen, name='out_cat',   activation = "softmax")(dropout2)
+        hidden3     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
+        dropout3    = Dropout(0.2)(hidden3)
+        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout3)
+        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout3)
+        outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout3)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
         self.compileLSTM()
