@@ -415,7 +415,7 @@ class MLmodels:
         inLayer     = Input(shape = (look_back, 7))
         hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
         # dropout1    = Dropout(0.2)(hidden1)
-        hidden2     = Dense(1000,    name='dense1',    activation = "relu"   )(hidden1)
+        hidden2     = Dense(2500,    name='dense1',    activation = "relu"   )(hidden1)
         dropout2    = Dropout(0.2)(hidden2)
         hidden3     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
         dropout3    = Dropout(0.2)(hidden3)
