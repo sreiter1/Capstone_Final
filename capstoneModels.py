@@ -28,6 +28,7 @@ from keras.models import Model
 from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Input
+from keras.layers import Dropout
 from keras import metrics
 from keras import optimizers
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -401,15 +402,31 @@ class MLmodels:
         
         
         # Model 2
+        # inLayer     = Input(shape = (look_back, 7))
+        # hidden1     = LSTM(120,      name='LSTM',    activation = "sigmoid")(inLayer)
+        # hidden2     = Dense(128,     name='dense1',  activation = "relu"   )(hidden1)
+        # outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(hidden2)
+        # outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(hidden2)
+        # outCat      = Dense(predLen, name='out_cat', activation = "softmax")(hidden2)
+        
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
+        # self.compileLSTM()
+        
+        
+        
+        # Model 3
         inLayer     = Input(shape = (look_back, 7))
-        hidden1     = LSTM(120,      name='LSTM',    activation = "sigmoid")(inLayer)
-        hidden2     = Dense(128,     name='dense1',  activation = "relu"   )(hidden1)
-        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(hidden2)
-        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(hidden2)
-        outCat      = Dense(predLen, name='out_cat', activation = "softmax")(hidden2)
+        hidden1     = LSTM(250,      name='LSTM',      activation = "sigmoid")(inLayer)
+        dropout1    = Dropout(0.2)(hidden1)
+        hidden2     = Dense(1000,    name='dense1',    activation = "relu"   )(dropout1)
+        dropout2    = Dropout(0.2)(hidden2)
+        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout2)
+        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout2)
+        outCat      = Dense(predLen, name='out_cat',   activation = "softmax")(dropout2)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
         self.compileLSTM()
+        
         
         print("---LSTM model built---\n")
         self.lstm_model.summary()
@@ -1106,4 +1123,4 @@ if __name__ == "__main__":
     # mod.analysis.filterStocksFromDataBase(dailyLength = 1250, maxDailyChange = 50, minDailyChange = -50, minDailyVolume = 5000000)
     # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
-    
+    mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 1, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
