@@ -87,9 +87,8 @@ class MLmodels:
         self.stockdata  = StockData.getAlphaVantageData(dataBaseSaveFile = dataBaseSaveFile, 
                                                         dataBaseThreadCheck = dataBaseThreadCheck)
         
-        self.testX_out  = [] # for the LSTM model
-        self.testYr_out = [] # for the LSTM model
-        self.testYc_out = [] # for the LSTM model
+        self.trainingData = {}  # saves the sliced testing data for the model
+        self.testingData  = {}  # saves the sliced testing data for the model
         
         if "win" in sys.platform:
             self.folderSeparator = "\\"
@@ -209,7 +208,6 @@ class MLmodels:
                    storeTrainingDataInRAM = False):
         
         np.random.seed(randomSeed)
-        trainingData = {}
         
         startTime = dt.datetime.now()
         self.trainingTimes   = []
@@ -306,8 +304,10 @@ class MLmodels:
                 print(trainDate)
                 
                 
-                if ticker in trainingData.keys():
-                    trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = trainingData[ticker]
+                if ticker in self.trainingData.keys():
+                    trainX, trainYrh, trainYrl, trainYc = self.trainingData[ticker]
+                    testX,  testYrh,  testYrl,  testYc  = self.testingData[ticker] 
+                    
                 else:
                     try:
                         trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
@@ -318,8 +318,8 @@ class MLmodels:
                                                               predLen = predLen)
                         
                         if storeTrainingDataInRAM:
-                            trainingData[ticker] = (trainX, trainYrh, trainYrl, trainYc, 
-                                                    testX, testYrh, testYrl, testYc)
+                            self.trainingData[ticker] = (trainX, trainYrh, trainYrl, trainYc)
+                            self.testingData[ticker]  = (testX,  testYrh,  testYrl,  testYc)
                         
                     except (noPriceData):
                         print("\nNo Data associated with ticker '" + ticker + "'.")
@@ -377,9 +377,6 @@ class MLmodels:
             
             saveString = folderName + "lstm_model_" + str(itteration + 1 + prevItter).zfill(3) + ".h5"
             self.lstm_model.save(saveString)
-            
-            # evaluation = self.lstm_model.evaluate(testX_out, [testYr_out, testYc_out])
-            # print("Final Results of Training:  " + str(evaluation))
         
         dataFile.close()
         return 
@@ -417,8 +414,8 @@ class MLmodels:
         # Model 3
         inLayer     = Input(shape = (look_back, 7))
         hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
-        dropout1    = Dropout(0.2)(hidden1)
-        hidden2     = Dense(1000,    name='dense1',    activation = "relu"   )(dropout1)
+        # dropout1    = Dropout(0.2)(hidden1)
+        hidden2     = Dense(1000,    name='dense1',    activation = "relu"   )(hidden1)
         dropout2    = Dropout(0.2)(hidden2)
         hidden3     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
         dropout3    = Dropout(0.2)(hidden3)
@@ -1122,7 +1119,7 @@ if __name__ == "__main__":
     # lr_model = mod.linearRegression("A")
     # model_autoARIMA, fitted, endData = mod.autoARIMA("TSLA", evaluate=False, predLen=100, loadFromSave = False)
     
-    # mod.analysis.filterStocksFromDataBase(dailyLength = 1250, maxDailyChange = 50, minDailyChange = -50, minDailyVolume = 5000000)
+    # mod.analysis.filterStocksFromDataBase(dailyLength = 1250, maxDailyChange = 50, minDailyChange = -50, minDailyVolume = 500000)
     # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
-    mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 1, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
+    mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
