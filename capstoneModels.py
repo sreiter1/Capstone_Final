@@ -29,6 +29,9 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Input
 from keras.layers import Dropout
+from keras.layers import Conv1D
+from keras.layers import AveragePooling1D
+from keras.layers import Flatten
 from keras import metrics
 from keras import optimizers
 from sklearn.metrics import mean_squared_error, mean_absolute_error
@@ -411,14 +414,32 @@ class MLmodels:
         
         
         
-        # Model 3
+        # # Model 3
+        # inLayer     = Input(shape = (look_back, 7))
+        # hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
+        # # dropout1    = Dropout(0.2)(hidden1)
+        # hidden2     = Dense(2500,    name='dense1',    activation = "relu"   )(hidden1)
+        # dropout2    = Dropout(0.2)(hidden2)
+        # hidden3     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
+        # dropout3    = Dropout(0.2)(hidden3)
+        # outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout3)
+        # outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout3)
+        # outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout3)
+        
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
+        # self.compileLSTM()
+        
+        
+        
+        # Model 4
         inLayer     = Input(shape = (look_back, 7))
-        hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
-        # dropout1    = Dropout(0.2)(hidden1)
-        hidden2     = Dense(2500,    name='dense1',    activation = "relu"   )(hidden1)
-        dropout2    = Dropout(0.2)(hidden2)
-        hidden3     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
-        dropout3    = Dropout(0.2)(hidden3)
+        # hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
+        hidden1     = Conv1D(100,  30,  name='conv1' )(inLayer)
+        hidden2     = Flatten(name='flatten')(hidden1)
+        hidden3     = Dense(1000,    name='dense1',    activation = "relu"   )(hidden2)
+        dropout2    = Dropout(0.2)(hidden3)
+        hidden4     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
+        dropout3    = Dropout(0.2)(hidden4)
         outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout3)
         outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout3)
         outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout3)
@@ -1100,8 +1121,8 @@ if __name__ == "__main__":
     
     mod.LSTM_train(EpochsPerTicker = 1, 
                    fullItterations = 1, 
-                   # loadPrevious = False,
-                   look_back = 250, 
+                   loadPrevious = False,
+                   look_back = 60, 
                    trainSize = 0.9,
                    predLen = 30, 
                    storeTrainingDataInRAM = True)
@@ -1122,4 +1143,4 @@ if __name__ == "__main__":
     # mod.analysis.filterStocksFromDataBase(dailyLength = 1250, maxDailyChange = 50, minDailyChange = -50, minDailyVolume = 500000)
     # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
-    mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
+    # mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
