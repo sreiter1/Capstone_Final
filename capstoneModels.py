@@ -30,7 +30,8 @@ from keras.layers import LSTM
 from keras.layers import Input
 from keras.layers import Dropout
 from keras.layers import Conv1D
-from keras.layers import AveragePooling1D
+from keras.layers import TimeDistributed
+from keras.layers import AveragePooling1D, MaxPooling1D 
 from keras.layers import Flatten
 from keras import metrics
 from keras import optimizers
@@ -433,16 +434,25 @@ class MLmodels:
         
         # Model 4
         inLayer     = Input(shape = (look_back, 7))
-        # hidden1     = LSTM(look_back,      name='LSTM'   )(inLayer)
-        hidden1     = Conv1D(100,  30,  name='conv1' )(inLayer)
-        hidden2     = Flatten(name='flatten')(hidden1)
-        hidden3     = Dense(1000,    name='dense1',    activation = "relu"   )(hidden2)
-        dropout2    = Dropout(0.2)(hidden3)
-        hidden4     = Dense(1000,    name='dense2',    activation = "relu"   )(dropout2)
-        dropout3    = Dropout(0.2)(hidden4)
-        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout3)
-        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout3)
-        outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout3)
+        
+        conv1       = Conv1D(64,  7,  name='conv1' )(inLayer)
+        conv2       = Conv1D(64,  7,  name='conv2' )(conv1)
+        conv3       = Conv1D(64,  7,  name='conv3' )(conv2)
+        conv4       = Conv1D(64,  7,  name='conv4' )(conv3)
+        pool3       = AveragePooling1D(pool_size = 5, stride = 1, name = "pool3")(conv4)
+        
+        flat1       = Flatten()(pool3)
+        #lstm1       = LSTM(units = 100, name='LSTM')(pool3)
+        
+        dense1      = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
+        dropout1    = Dropout(0.1)(dense1)
+        
+        dense2      = Dense(1000,    name='dense2',    activation = "relu"   )(dropout1)
+        dropout2    = Dropout(0.2)(dense2)
+        
+        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout2)
+        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout2)
+        outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
         self.compileLSTM()
@@ -455,7 +465,7 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        opt = optimizers.Adam()
+        opt = optimizers.Adam(learning_rate=0.001)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_reg_h" : "mean_squared_error", 
                                         "out_reg_l" : "mean_squared_error",
@@ -1122,7 +1132,7 @@ if __name__ == "__main__":
     mod.LSTM_train(EpochsPerTicker = 1, 
                    fullItterations = 1, 
                    loadPrevious = False,
-                   look_back = 60, 
+                   look_back = 250, 
                    trainSize = 0.9,
                    predLen = 30, 
                    storeTrainingDataInRAM = True)
