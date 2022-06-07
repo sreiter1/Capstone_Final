@@ -465,7 +465,7 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        opt = optimizers.Adam(learning_rate=0.001)
+        opt = optimizers.Adam(learning_rate=0.0001)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_reg_h" : "mean_squared_error", 
                                         "out_reg_l" : "mean_squared_error",
