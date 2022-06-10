@@ -217,13 +217,18 @@ class MLmodels:
         self.trainingTimes   = []
         self.trainingHistory = []
         self.testingHistory  = []
-        trainHistKeys = ['val_loss', 'val_out_reg_h_loss', 'val_out_reg_l_loss', 
-                         'val_out_cat_loss', 'val_out_reg_h_mse', 'val_out_reg_h_mape', 
-                         'val_out_reg_l_mse', 'val_out_reg_l_mape', 'val_out_cat_auc', 
+        trainHistKeys = ['val_loss', 'val_out_open_loss', 'val_out_high_loss', 
+                         'val_out_low_loss', 'val_out_close_loss', 'val_out_vol_loss', 
+                         'val_out_cat_loss', 'val_out_open_mse', 'val_out_open_mape', 
+                         'val_out_high_mse', 'val_out_high_mape', 'val_out_low_mse', 
+                         'val_out_low_mape', 'val_out_close_mse', 'val_out_close_mape', 
+                         'val_out_vol_mse', 'val_out_vol_mape', 'val_out_cat_auc', 
                          'val_out_cat_catAcc', 'val_out_cat_TP', 'val_out_cat_TN', 
-                         'val_out_cat_FP', 'val_out_cat_FN', 'loss', 'out_reg_h_loss', 
-                         'out_reg_l_loss', 'out_cat_loss', 'out_reg_h_mse', 
-                         'out_reg_h_mape', 'out_reg_l_mse', 'out_reg_l_mape', 
+                         'val_out_cat_FP', 'val_out_cat_FN', 'loss', 'out_open_loss', 
+                         'out_high_loss', 'out_low_loss', 'out_close_loss', 
+                         'out_vol_loss', 'out_cat_loss', 'out_open_mse', 'out_open_mape', 
+                         'out_high_mse', 'out_high_mape', 'out_low_mse', 'out_low_mape', 
+                         'out_close_mse', 'out_close_mape', 'out_vol_mse', 'out_vol_mape', 
                          'out_cat_auc', 'out_cat_catAcc', 'out_cat_TP', 'out_cat_TN', 
                          'out_cat_FP', 'out_cat_FN']
         
@@ -1169,7 +1174,7 @@ if __name__ == "__main__":
     
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
-                   fullItterations = 1, 
+                   fullItterations = 10, 
                    loadPrevious = False,
                    look_back = 250, 
                    trainSize = 0.9,
