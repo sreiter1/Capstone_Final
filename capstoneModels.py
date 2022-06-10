@@ -241,7 +241,8 @@ class MLmodels:
             folderName = self.folderSeparator.join(self.prevTrainingData.split(self.folderSeparator)[:-1]) + self.folderSeparator
             
         else:
-            self.createLSTMNetwork(look_back = look_back)
+            self.createLSTMNetwork(look_back = look_back,
+                                   predLen = predLen)
             prevItter = 0
             folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)) + self.folderSeparator
             folderName = folderName.replace(":", ".")
@@ -1176,9 +1177,9 @@ if __name__ == "__main__":
     x = mod.LSTM_train(EpochsPerTicker = 1, 
                    fullItterations = 10, 
                    loadPrevious = False,
-                   look_back = 250, 
+                   look_back = 120, 
                    trainSize = 0.9,
-                   predLen = 30, 
+                   predLen = 15, 
                    storeTrainingDataInRAM = True)
     
     # data = mod.getLSTMTestTrainData(ticker = "AMZN",
