@@ -309,12 +309,12 @@ class MLmodels:
                 
                 
                 if ticker in self.trainingData.keys():
-                    trainX, trainYrh, trainYrl, trainYc = self.trainingData[ticker]
-                    testX,  testYrh,  testYrl,  testYc  = self.testingData[ticker] 
+                    trainX, trainY, trainYc = self.trainingData[ticker]
+                    testX,  testY,  testYc  = self.testingData[ticker] 
                     
                 else:
                     try:
-                        trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
+                        trainX, trainY, trainYc, testX, testY, testYc = \
                                     self.getLSTMTestTrainData(look_back = look_back,
                                                               ticker = ticker, 
                                                               trainSize = trainSize, 
@@ -322,8 +322,8 @@ class MLmodels:
                                                               predLen = predLen)
                         
                         if storeTrainingDataInRAM:
-                            self.trainingData[ticker] = (trainX, trainYrh, trainYrl, trainYc)
-                            self.testingData[ticker]  = (testX,  testYrh,  testYrl,  testYc)
+                            self.trainingData[ticker] = (trainX, trainY, trainYc)
+                            self.testingData[ticker]  = (testX,  testY,  testYc)
                         
                     except (noPriceData):
                         print("\nNo Data associated with ticker '" + ticker + "'.")
@@ -338,10 +338,13 @@ class MLmodels:
                 
                 #---------------------------------------------------
                 # Train the model
-                
-                self.lstm_model.reset_states()
-                
-                trainHist = self.lstm_model.fit(trainX, [trainYrh, trainYrl, trainYc], 
+                trainHist = self.lstm_model.fit(trainX, 
+                                                [trainY[:,:,0],
+                                                 trainY[:,:,1],
+                                                 trainY[:,:,2],
+                                                 trainY[:,:,3],
+                                                 trainY[:,:,4],
+                                                 trainYc[:,:,0]], 
                                                 epochs = EpochsPerTicker, 
                                                 verbose = 1, 
                                                 validation_split = 0.125)
@@ -433,29 +436,59 @@ class MLmodels:
         
         
         # Model 4
-        inLayer     = Input(shape = (look_back, 7))
+        # inLayer     = Input(shape = (look_back, 7))
         
-        conv1       = Conv1D(64,  7,  name='conv1' )(inLayer)
-        conv2       = Conv1D(64,  7,  name='conv2' )(conv1)
-        conv3       = Conv1D(64,  7,  name='conv3' )(conv2)
-        conv4       = Conv1D(64,  7,  name='conv4' )(conv3)
-        pool3       = AveragePooling1D(pool_size = 5, stride = 1, name = "pool3")(conv4)
+        # conv1       = Conv1D(16,  7,   name='conv1' )(inLayer)
+        # conv2       = Conv1D(16,  20,  name='conv2' )(conv1)
+        # pool3       = AveragePooling1D(pool_size = 5, stride = 1, name = "pool3")(conv2)
         
-        flat1       = Flatten()(pool3)
-        #lstm1       = LSTM(units = 100, name='LSTM')(pool3)
+        # flat1       = Flatten()(pool3)
+        # #lstm1       = LSTM(units = 100, name='LSTM')(pool3)
         
-        dense1      = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
-        dropout1    = Dropout(0.1)(dense1)
+        # dense1      = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
+        # dropout1    = Dropout(0.1)(dense1)
         
-        dense2      = Dense(1000,    name='dense2',    activation = "relu"   )(dropout1)
-        dropout2    = Dropout(0.2)(dense2)
+        # dense2      = Dense(1000,    name='dense2',    activation = "relu"   )(dropout1)
+        # dropout2    = Dropout(0.2)(dense2)
         
-        outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout2)
-        outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout2)
-        outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
+        # outRegHigh  = Dense(predLen, name='out_reg_h', activation = "linear" )(dropout2)
+        # outRegLow   = Dense(predLen, name='out_reg_l', activation = "linear" )(dropout2)
+        # outCat      = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
         
-        self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outRegHigh, outRegLow, outCat])
+        # self.compileLSTM()
+        
+        
+        
+        
+        # Model 5
+        inLayer   = Input(shape = (look_back, 7))
+        
+        conv1     = Conv1D(8,  10,   name='conv1' )(inLayer)
+        conv2     = Conv1D(8,  10,   name='conv2' )(conv1)
+        pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv2)
+        
+        flat1     = Flatten()(pool)
+        
+        dense1    = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
+        dense2    = Dense(1000,    name='dense2',    activation = "relu"   )(dense1)
+        dropout2  = Dropout(0.2)(dense2)
+        
+        outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dropout2)
+        outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dropout2)
+        outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dropout2)
+        outClose  = Dense(predLen, name='out_close', activation = "linear" )(dropout2)
+        outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dropout2)
+        outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
+        
+        self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
+                                                         outHigh, 
+                                                         outLow,
+                                                         outClose,
+                                                         outVol,
+                                                         outCat])
         self.compileLSTM()
+        
         
         
         print("---LSTM model built---\n")
@@ -467,13 +500,24 @@ class MLmodels:
     def compileLSTM(self):
         opt = optimizers.Adam(learning_rate=0.0001)
         self.lstm_model.compile(optimizer = opt,
-                                loss = {"out_reg_h" : "mean_squared_error", 
-                                        "out_reg_l" : "mean_squared_error",
+                                loss = {"out_open"  : "mean_squared_error", 
+                                        "out_high"  : "mean_squared_error",
+                                        "out_low"   : "mean_squared_error",
+                                        "out_close" : "mean_squared_error",
+                                        "out_vol"   : "mean_squared_error",
                                         "out_cat"   : "binary_crossentropy"},
-                                metrics = {"out_reg_h": [metrics.MeanSquaredError(name = "mse"), 
-                                                         metrics.MeanAbsolutePercentageError(name = "mape")],
-                                           "out_reg_l": [metrics.MeanSquaredError(name = "mse"), 
-                                                         metrics.MeanAbsolutePercentageError(name = "mape")],
+                                
+                                metrics = {"out_open"  : [metrics.MeanSquaredError(name = "mse"), 
+                                                          metrics.MeanAbsolutePercentageError(name = "mape")],
+                                           "out_high"  : [metrics.MeanSquaredError(name = "mse"), 
+                                                          metrics.MeanAbsolutePercentageError(name = "mape")],
+                                           "out_low"   : [metrics.MeanSquaredError(name = "mse"), 
+                                                          metrics.MeanAbsolutePercentageError(name = "mape")],
+                                           "out_close" : [metrics.MeanSquaredError(name = "mse"), 
+                                                          metrics.MeanAbsolutePercentageError(name = "mape")],
+                                           "out_vol"   : [metrics.MeanSquaredError(name = "mse"), 
+                                                          metrics.MeanAbsolutePercentageError(name = "mape")],
+                                           
                                            "out_cat": [metrics.AUC(name = "auc"),
                                                        metrics.CategoricalAccuracy(name = "catAcc"), 
                                                        metrics.TruePositives(name = "TP"),
@@ -496,8 +540,7 @@ class MLmodels:
     
     
     def splitLSTMData(self, inputs, 
-                      outputs_rh,  
-                      outputs_rl,
+                      outputs,
                       outputs_c, 
                       look_back = 120, 
                       trainSize = 0.8, 
@@ -505,7 +548,7 @@ class MLmodels:
         # takes 2D np array of data with axes of time (i.e. trading days) and features,
         # and returns a 3D np array of batch, time, features
         
-        dataX, dataY_rh, dataY_rl, dataY_c = [], [], [], []
+        dataX, dataY, dataY_c = [], [], []
         lenInput = len(inputs)
         
         
@@ -521,27 +564,23 @@ class MLmodels:
             
         for i in range(lenInput - look_back - predLen):
             a = inputs[i : (i+look_back)]
-            b = outputs_rh[(i + look_back) : (i + look_back + predLen)]
-            c = outputs_rl[(i + look_back) : (i + look_back + predLen)]
+            b = outputs[(i + look_back) : (i + look_back + predLen)]
             d = outputs_c[(i + look_back) : (i + look_back + predLen)]
             
             dataX.append(a)
-            dataY_rh.append(b)
-            dataY_rl.append(c)
+            dataY.append(b)
             dataY_c.append(d)
             
         
         trainX   = np.array(dataX[:lenTrain])
-        trainYrh = np.array(dataY_rh[:lenTrain])
-        trainYrl = np.array(dataY_rl[:lenTrain])
+        trainY   = np.array(dataY[:lenTrain])
         trainYc  = np.array(dataY_c[:lenTrain])
         
         testX   = np.array(dataX[(lenTrain+1):])
-        testYrh = np.array(dataY_rh[(lenTrain+1):])
-        testYrl = np.array(dataY_rl[(lenTrain+1):])
+        testY   = np.array(dataY[(lenTrain+1):])
         testYc  = np.array(dataY_c[(lenTrain+1):])
         
-        return trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc
+        return trainX, trainY, trainYc, testX, testY, testYc
     
     
     
@@ -589,24 +628,26 @@ class MLmodels:
         inputFrame["low"  ] = [l/a for l,a in zip(loadedData["low"],   loadedData["adjustment_ratio"])]
         inputFrame["close"] = [c/a for c,a in zip(loadedData["close"], loadedData["adjustment_ratio"])]
         inputFrame["ma20" ] = loadedData["mvng_avg_20"]
-        inputFrame["obv"  ] = loadedData["on_bal_vol"]
         inputFrame["vol"  ] = loadedData["volume"] 
+        inputFrame["obv"  ] = loadedData["on_bal_vol"]
         
-        outputFrame["high"] = loadedData["ideal_high"]
-        outputFrame["low" ] = loadedData["ideal_low" ]
+        outputFrame["open"]  = inputFrame["open"  ].shift(periods = -1)
+        outputFrame["high"]  = inputFrame["high"  ].shift(periods = -1)
+        outputFrame["low"]   = inputFrame["low"   ].shift(periods = -1)
+        outputFrame["close"] = inputFrame["close" ].shift(periods = -1)
+        outputFrame["vol" ]  = inputFrame["vol"   ].shift(periods = -1)
+        
         outputFrame["trig"] = [1 if t==1 else 0 for t in loadedData["ideal_return_trig"]]
         
     
         # reshape / modify the inputs and outputs to match the LSTM expectations
         # and separeate into test and train sets
-        trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc =    \
-                                                            self.splitLSTMData(inputFrame.to_numpy(), 
-                                                            outputFrame["high"].to_numpy().reshape(-1,1),
-                                                            outputFrame["low" ].to_numpy().reshape(-1,1),
-                                                            outputFrame["trig"].to_numpy().reshape(-1,1), 
-                                                            look_back = look_back, 
-                                                            trainSize = trainLen,
-                                                            predLen = predLen)
+        trainX, trainY, trainYc, testX, testY, testYc =  self.splitLSTMData(inputFrame.to_numpy(), 
+                                                         outputFrame.loc[:, outputFrame.columns != "trig"].to_numpy(),
+                                                         outputFrame["trig"].to_numpy().reshape(-1,1), 
+                                                         look_back = look_back, 
+                                                         trainSize = trainLen,
+                                                         predLen = predLen)
         
         
         # ----------------------------------------------
@@ -625,10 +666,13 @@ class MLmodels:
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
             # features should be maintained).  Then append the trigger data.
-            fitList = self.getFitArray(max(trainX[i,:,1]), min(trainX[i,:,2]), 1)
+            fitList = self.getFitArray(max(trainX[i,:,1]), min(trainX[i,:,2]), 4)
             minMax.fit(fitList)
-            trainYrh[i,:,0] = minMax.transform(trainYrh[i,:,0].reshape(-1,1)).flatten()
-            trainYrl[i,:,0] = minMax.transform(trainYrl[i,:,0].reshape(-1,1)).flatten()
+            trainY[i,:,:4] = minMax.transform(trainY[i,:,:4])
+            
+            fitList = self.getFitArray(max(trainX[i,:,5]), min(trainX[i,:,5]), 1)
+            minMax.fit(fitList)
+            trainY[i,:,4] = minMax.transform(trainY[i,:,4].reshape(-1,1)).flatten()
             
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
@@ -650,10 +694,13 @@ class MLmodels:
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
             # features should be maintained).  Then append the trigger data.
-            fitList = self.getFitArray(max(testX[i,:,1]), min(testX[i,:,2]), 1)
+            fitList = self.getFitArray(max(testX[i,:,1]), min(testX[i,:,2]), 4)
             minMax.fit(fitList)
-            testYrh[i,:,0] = minMax.transform(testYrh[i,:,0].reshape(-1,1)).flatten()
-            testYrl[i,:,0] = minMax.transform(testYrl[i,:,0].reshape(-1,1)).flatten()
+            testY[i,:,:4] = minMax.transform(testY[i,:,:4])
+            
+            fitList = self.getFitArray(max(testX[i,:,5]), min(testX[i,:,5]), 1)
+            minMax.fit(fitList)
+            testY[i,:,4] = minMax.transform(testY[i,:,4].reshape(-1,1)).flatten()
             
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
@@ -667,15 +714,7 @@ class MLmodels:
         
         print()
         
-        trainYrh = np.squeeze(trainYrh)
-        trainYrl = np.squeeze(trainYrl)
-        trainYc  = np.squeeze(trainYc)
-        
-        testYrh = np.squeeze(testYrh)
-        testYrl = np.squeeze(testYrl)
-        testYc  = np.squeeze(testYc)
-        
-        return trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc
+        return trainX, trainY, trainYc, testX, testY, testYc
     
     
     
@@ -1129,7 +1168,7 @@ if __name__ == "__main__":
                                           minDailyVolume = 5000000)
     
     
-    mod.LSTM_train(EpochsPerTicker = 1, 
+    x = mod.LSTM_train(EpochsPerTicker = 1, 
                    fullItterations = 1, 
                    loadPrevious = False,
                    look_back = 250, 
