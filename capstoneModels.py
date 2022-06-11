@@ -722,7 +722,7 @@ class MLmodels:
             minMax.fit(fitList)
             trainY[i,:,:4] = minMax.transform(trainY[i,:,:4])
             
-            fitList = self.getFitArray(max(trainX[i,:,5]), min(trainX[i,:,5]), 1)
+            fitList = self.getFitArray(max(trainX[i,:,17]), min(trainX[i,:,17]), 1)
             minMax.fit(fitList)
             trainY[i,:,4] = minMax.transform(trainY[i,:,4].reshape(-1,1)).flatten()
             
@@ -749,7 +749,7 @@ class MLmodels:
             minMax.fit(fitList)
             testY[i,:,:4] = minMax.transform(testY[i,:,:4])
             
-            fitList = self.getFitArray(max(testX[i,:,5]), min(testX[i,:,5]), 1)
+            fitList = self.getFitArray(max(testX[i,:,17]), min(testX[i,:,17]), 1)
             minMax.fit(fitList)
             testY[i,:,4] = minMax.transform(testY[i,:,4].reshape(-1,1)).flatten()
             
