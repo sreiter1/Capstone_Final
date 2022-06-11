@@ -1215,7 +1215,7 @@ if __name__ == "__main__":
     mod.analysis.filterStocksFromDataBase(dailyLength = 1250, 
                                           maxDailyChange = 50, 
                                           minDailyChange = -50, 
-                                          minDailyVolume = 5000000)
+                                          minDailyVolume = 500000)
     
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
