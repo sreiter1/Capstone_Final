@@ -189,7 +189,7 @@ class MLmodels:
                                                           predLen = predLen)
         except (noPriceData):
             print("\nNo Data associated with ticker '" + ticker + "'.")
-            return None, None, None, [None, None, None]
+            return None, None, None, [None, None]
         
         
         evaluation = self.lstm_model.evaluate(testX, [testY, testYc])
@@ -501,12 +501,11 @@ class MLmodels:
         inLayer   = Input(shape = (look_back, 18))
         
         conv1     = Conv1D(10,  5,   name='conv1' )(inLayer)
-        conv2     = Conv1D(10,  10,  name='conv2' )(conv1)
-        pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv2)
+        pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv1)
         
-        flat1     = Flatten()(pool)
+        lstm      = LSTM(units = 112, name='LSTM')(pool)
         
-        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(flat1)
+        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
         
         outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
         outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
@@ -962,7 +961,7 @@ class MLmodels:
               confInterval = 0.2, 
               savePlt = False, 
               evaluate = True, 
-              predLen = 500, 
+              predLen = 50, 
               plotWindow=600,
               timestampstr = ""):
         
