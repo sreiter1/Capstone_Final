@@ -181,7 +181,7 @@ class MLmodels:
             trainSize = 0.9
         
         try:
-            trainX, trainYrh, trainYrl, trainYc, testX, testYrh, testYrl, testYc = \
+            trainX, trainY, trainYc, testX, testY, testYc = \
                                 self.getLSTMTestTrainData(look_back = look_back,
                                                           ticker = ticker, 
                                                           trainSize = trainSize, 
@@ -192,10 +192,10 @@ class MLmodels:
             return None, None, None, [None, None, None]
         
         
-        evaluation = self.lstm_model.evaluate(testX, [trainYrh, trainYrl, testYc])
+        evaluation = self.lstm_model.evaluate(testX, [testY, testYc])
         prediction = self.lstm_model.predict(testX)
         
-        return prediction, evaluation, testX, [trainYrh, trainYrl, testYc]
+        return prediction, evaluation, testX, [testY, testYc]
     
     
     
@@ -500,22 +500,20 @@ class MLmodels:
         # Model 6
         inLayer   = Input(shape = (look_back, 18))
         
-        conv1     = Conv1D(8,  10,   name='conv1' )(inLayer)
-        conv2     = Conv1D(8,  10,   name='conv2' )(conv1)
+        conv1     = Conv1D(10,  5,   name='conv1' )(inLayer)
+        conv2     = Conv1D(10,  10,  name='conv2' )(conv1)
         pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv2)
         
         flat1     = Flatten()(pool)
         
         dense1    = Dense(500,    name='dense1',    activation = "relu"   )(flat1)
-        dense2    = Dense(500,    name='dense2',    activation = "relu"   )(dense1)
-        dropout2  = Dropout(0.2)(dense2)
         
-        outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dropout2)
-        outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dropout2)
-        outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dropout2)
-        outClose  = Dense(predLen, name='out_close', activation = "linear" )(dropout2)
-        outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dropout2)
-        outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
+        outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
+        outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
+        outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dense1)
+        outClose  = Dense(predLen, name='out_close', activation = "linear" )(dense1)
+        outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dense1)
+        outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
                                                          outHigh, 
