@@ -468,6 +468,36 @@ class MLmodels:
         
         
         # Model 5
+        # inLayer   = Input(shape = (look_back, 7))
+        
+        # conv1     = Conv1D(8,  10,   name='conv1' )(inLayer)
+        # conv2     = Conv1D(8,  10,   name='conv2' )(conv1)
+        # pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv2)
+        
+        # flat1     = Flatten()(pool)
+        
+        # dense1    = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
+        # dense2    = Dense(1000,    name='dense2',    activation = "relu"   )(dense1)
+        # dropout2  = Dropout(0.2)(dense2)
+        
+        # outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dropout2)
+        # outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dropout2)
+        # outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dropout2)
+        # outClose  = Dense(predLen, name='out_close', activation = "linear" )(dropout2)
+        # outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dropout2)
+        # outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
+        
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
+        #                                                  outHigh, 
+        #                                                  outLow,
+        #                                                  outClose,
+        #                                                  outVol,
+        #                                                  outCat])
+        # self.compileLSTM()
+        
+        
+        
+        # Model 6
         inLayer   = Input(shape = (look_back, 7))
         
         conv1     = Conv1D(8,  10,   name='conv1' )(inLayer)
@@ -476,8 +506,8 @@ class MLmodels:
         
         flat1     = Flatten()(pool)
         
-        dense1    = Dense(1000,    name='dense1',    activation = "relu"   )(flat1)
-        dense2    = Dense(1000,    name='dense2',    activation = "relu"   )(dense1)
+        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(flat1)
+        dense2    = Dense(500,    name='dense2',    activation = "relu"   )(dense1)
         dropout2  = Dropout(0.2)(dense2)
         
         outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dropout2)
@@ -629,13 +659,26 @@ class MLmodels:
         inputFrame  = pd.DataFrame()
         outputFrame = pd.DataFrame()
         
+        print("Processing Indicators for " + ticker.rjust(6) + "    ")
+        
         inputFrame["open" ] = [o/a for o,a in zip(loadedData["open"],  loadedData["adjustment_ratio"])]
         inputFrame["high" ] = [h/a for h,a in zip(loadedData["high"],  loadedData["adjustment_ratio"])]
         inputFrame["low"  ] = [l/a for l,a in zip(loadedData["low"],   loadedData["adjustment_ratio"])]
         inputFrame["close"] = [c/a for c,a in zip(loadedData["close"], loadedData["adjustment_ratio"])]
-        inputFrame["ma20" ] = loadedData["mvng_avg_20"]
+        inputFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 2)
+        inputFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 4)
+        inputFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 6)
+        inputFrame["ma08" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 8)
+        inputFrame["ma10" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 10)
+        inputFrame["ma12" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 12)
+        inputFrame["ma14" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 14)
+        inputFrame["ma16" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 16)
+        inputFrame["ma18" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 18)
+        inputFrame["ma20" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 20)
+        inputFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 30)
+        inputFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 40)
+        inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 50)
         inputFrame["vol"  ] = loadedData["volume"] 
-        inputFrame["obv"  ] = loadedData["on_bal_vol"]
         
         outputFrame["open"]  = inputFrame["open"  ].shift(periods = -1)
         outputFrame["high"]  = inputFrame["high"  ].shift(periods = -1)
@@ -685,9 +728,8 @@ class MLmodels:
             # features should be maintained).  Then append the OBV data.
             fitList = self.getFitArray(max(trainX[i,:,1]), min(trainX[i,:,2]), 5)  #should small (min) be 0?  or min('low')?
             minMax.fit(fitList)
-            trainX[i,:,:5] = minMax.transform(trainX[i,:,:5])
-            trainX[i,:, 5] = minMax.fit_transform(trainX[i,:,5].reshape(-1,1)).flatten()
-            trainX[i,:, 6] = minMax.fit_transform(trainX[i,:, 6].reshape(-1,1)).flatten()
+            trainX[i,:,:17] = minMax.transform(trainX[i,:,:17])
+            trainX[i,:, 17] = minMax.fit_transform(trainX[i,:,17].reshape(-1,1)).flatten()
             
         
         
@@ -713,9 +755,8 @@ class MLmodels:
             # features should be maintained).  Then append the OBV data.
             fitList = self.getFitArray(max(testX[i,:,1]), min(testX[i,:,2]), 5)  #should small (min) be 0?  or min('low')?
             minMax.fit(fitList)
-            testX[i,:,:5] = minMax.transform(testX[i,:,:5])
-            testX[i,:, 5] = minMax.fit_transform(testX[i,:,5].reshape(-1,1)).flatten()
-            testX[i,:, 6] = minMax.fit_transform(testX[i,:,6].reshape(-1,1)).flatten()
+            testX[i,:,:17] = minMax.transform(testX[i,:,:17])
+            testX[i,:, 17] = minMax.fit_transform(testX[i,:,17].reshape(-1,1)).flatten()
         
         
         print()
