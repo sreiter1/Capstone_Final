@@ -729,7 +729,7 @@ class MLmodels:
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
             # features should be maintained).  Then append the OBV data.
-            fitList = self.getFitArray(max(trainX[i,:,1]), min(trainX[i,:,2]), 5)  #should small (min) be 0?  or min('low')?
+            fitList = self.getFitArray(max(trainX[i,:,1]), min(trainX[i,:,2]), 17)  #should small (min) be 0?  or min('low')?
             minMax.fit(fitList)
             trainX[i,:,:17] = minMax.transform(trainX[i,:,:17])
             trainX[i,:, 17] = minMax.fit_transform(trainX[i,:,17].reshape(-1,1)).flatten()
@@ -756,7 +756,7 @@ class MLmodels:
             # get the fit data to match the highest high and lowest low so
             # that all the pricing data is scaled together (relationships between 
             # features should be maintained).  Then append the OBV data.
-            fitList = self.getFitArray(max(testX[i,:,1]), min(testX[i,:,2]), 5)  #should small (min) be 0?  or min('low')?
+            fitList = self.getFitArray(max(testX[i,:,1]), min(testX[i,:,2]), 17)  #should small (min) be 0?  or min('low')?
             minMax.fit(fitList)
             testX[i,:,:17] = minMax.transform(testX[i,:,:17])
             testX[i,:, 17] = minMax.fit_transform(testX[i,:,17].reshape(-1,1)).flatten()
