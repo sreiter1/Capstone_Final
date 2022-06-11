@@ -498,7 +498,7 @@ class MLmodels:
         
         
         # Model 6
-        inLayer   = Input(shape = (look_back, 7))
+        inLayer   = Input(shape = (look_back, 18))
         
         conv1     = Conv1D(8,  10,   name='conv1' )(inLayer)
         conv2     = Conv1D(8,  10,   name='conv2' )(conv1)
@@ -665,19 +665,22 @@ class MLmodels:
         inputFrame["high" ] = [h/a for h,a in zip(loadedData["high"],  loadedData["adjustment_ratio"])]
         inputFrame["low"  ] = [l/a for l,a in zip(loadedData["low"],   loadedData["adjustment_ratio"])]
         inputFrame["close"] = [c/a for c,a in zip(loadedData["close"], loadedData["adjustment_ratio"])]
-        inputFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 2)
-        inputFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 4)
-        inputFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 6)
-        inputFrame["ma08" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 8)
-        inputFrame["ma10" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 10)
-        inputFrame["ma12" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 12)
-        inputFrame["ma14" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 14)
-        inputFrame["ma16" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 16)
-        inputFrame["ma18" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 18)
-        inputFrame["ma20" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 20)
-        inputFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 30)
-        inputFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 40)
-        inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = inputFrame["close"], periods = 50)
+        
+        closeList = list(inputFrame["close"])
+        
+        inputFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 2)
+        inputFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 4)
+        inputFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 6)
+        inputFrame["ma08" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 8)
+        inputFrame["ma10" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 10)
+        inputFrame["ma12" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 12)
+        inputFrame["ma14" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 14)
+        inputFrame["ma16" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 16)
+        inputFrame["ma18" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 18)
+        inputFrame["ma20" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 20)
+        inputFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 30)
+        inputFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 40)
+        inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
         inputFrame["vol"  ] = loadedData["volume"] 
         
         outputFrame["open"]  = inputFrame["open"  ].shift(periods = -1)
