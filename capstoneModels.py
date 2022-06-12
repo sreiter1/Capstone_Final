@@ -217,31 +217,47 @@ class MLmodels:
         
             
         if predict:
-            inputFrame = self.getLSTMPredictData(look_back = look_back,
-                                                 ticker = ticker, 
-                                                 predLen = predLen)
+            inputFrame, recordsReturned = self.getLSTMPredictData(look_back = look_back,
+                                                                  ticker = ticker, 
+                                                                  predLen = predLen)
             
             X, minMaxPrice, minMaxVol = self.scaleLSTMPred(inputFrame, look_back)
-            
             pred = self.lstm_model.predict(X)
+            prediction = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol, predLen)
             
-            inputFrame = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol)
-        
-            while extendedPredict > len(inputFrame) - look_back:
-                X, minMaxPrice, minMaxVol = self.scaleLSTMPred(inputFrame.drop(["trig"], axis = 1), look_back)
+            
+            while extendedPredict > len(prediction["open"]) - recordsReturned:
+                print("  Predictions made:  " + str(len(prediction["open"]) - recordsReturned).rjust(3))
+                X, minMaxPrice, minMaxVol = self.scaleLSTMPred(prediction.drop(["trig"], axis = 1), look_back)
                 pred = self.lstm_model.predict(X)
-                inputFrame = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol)
-            
-            prediction = inputFrame
-            
+                prediction = self.extendPredictData(prediction, pred, minMaxPrice, minMaxVol, predLen)
         else: 
             prediction = []
+    
+    
+        if savePlt:
+            pred = prediction.iloc[recordsReturned:]
+            
+            plt.figure.Figure(figsize=(16,8))
+            plt.pyplot.title("LSTM Model - " + ticker)
+            plt.pyplot.xlabel("Days")
+            plt.pyplot.ylabel("Close Price USD ($)")
+            plt.pyplot.plot(inputFrame["close"])
+            plt.pyplot.plot(pred["high"])
+            plt.pyplot.plot(pred["low"])
+            plt.pyplot.plot(pred["close"])
+            plt.pyplot.xlim([len(prediction)-plotWindow, len(prediction)+extendedPredict])
+            plt.pyplot.legend(["Actual Prices", "Predicted Close", "Predicted High", "Predicted Low"])
+            
+            plt.pyplot.savefig("./static/LSTM_1_" + timestampstr + ".png")
         
-        return prediction, evaluation
+        
+        return prediction, evaluation, inputFrame
     
     
     
-    def extendPredictData(self, prevInputs, predictions, priceScaler, volScaler):
+    
+    def extendPredictData(self, prevInputs, predictions, priceScaler, volScaler, predLen):
         predFrame = pd.DataFrame()
         
         predFrame["open"]  = predictions[0].flatten()
@@ -275,7 +291,7 @@ class MLmodels:
         
         predFrame = pd.DataFrame(predArray, columns = columnList)
         
-        inputFrame = pd.concat([prevInputs, predFrame], ignore_index = True)
+        inputFrame = pd.concat([prevInputs, predFrame.iloc[-predLen:]], ignore_index = True)
         
         return inputFrame
     
@@ -291,7 +307,7 @@ class MLmodels:
         dataX = []
         lenInput = len(inputs)
         
-        for i in range(lenInput - look_back):
+        for i in range(lenInput - 2*look_back, lenInput - look_back):
             a = inputs[i:(i+look_back)]
             dataX.append(a)
         
@@ -332,12 +348,13 @@ class MLmodels:
                                                  extras = ["HIGH", "LOW", "ADJRATIO", "VOLUME",
                                                            "IDEAL_HIGH", "IDEAL_LOW", "IDEAL_TRIG"])
         
-        if len(loadedData) == 0:
+        recordsReturned = len(loadedData)
+        if recordsReturned == 0:
             raise noPriceData("No Price Data associated with ticker '" + ticker + "'.")
         
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
-        loadedData = loadedData.iloc[-(2*look_back + 1):]
+        # loadedData = loadedData.iloc[-(2*look_back + 1):]
         
         # ensure that the adjustment ratio does not cause a div-by-0 error
         assert min(loadedData["adjustment_ratio"]) > 0, "\n\n  ERROR: adjustment ratio has 0-value.  Verify correct input data.  Ticker = " + ticker
@@ -369,7 +386,7 @@ class MLmodels:
         inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
         inputFrame["vol"  ] = [v*1 for v in loadedData["volume"]]
         
-        return inputFrame
+        return inputFrame, recordsReturned
         
     
     
@@ -668,7 +685,7 @@ class MLmodels:
         
         
         # Model 6
-        # inLayer   = Input(shape = (look_back, 18))
+        inLayer   = Input(shape = (look_back, 18))
         
         # conv1     = Conv1D(10,  5,   name='conv1' )(inLayer)
         # pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv1)
@@ -685,11 +702,11 @@ class MLmodels:
         # outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
         
         # self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
-        #                                                  outHigh, 
-        #                                                  outLow,
-        #                                                  outClose,
-        #                                                  outVol,
-        #                                                  outCat])
+        #                                                   outHigh, 
+        #                                                   outLow,
+        #                                                   outClose,
+        #                                                   outVol,
+        #                                                   outCat])
         # self.compileLSTM()
         
         
@@ -715,11 +732,11 @@ class MLmodels:
         outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
-                                                         outHigh, 
-                                                         outLow,
-                                                         outClose,
-                                                         outVol,
-                                                         outCat])
+                                                          outHigh, 
+                                                          outLow,
+                                                          outClose,
+                                                          outVol,
+                                                          outCat])
         self.compileLSTM()
         
         
@@ -1429,6 +1446,8 @@ if __name__ == "__main__":
     #                                 trainSize = 0.9,
     #                                 predLen   = 30)
     
+    
+    
     # data = mod.LSTM_load()
     # prediction, evaluation, testX, [testYr, testYc] = mod.LSTM_eval(ticker = "TSLA", evaluate = False)
     # lstm_pred = mod.LSTM_test()
@@ -1441,6 +1460,18 @@ if __name__ == "__main__":
     # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
     # mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     
