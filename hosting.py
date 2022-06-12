@@ -217,17 +217,18 @@ class flaskFunctions:
             searchString = form.symbol.data
             timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
             
-            prediction, evaluation = self.mod.LSTM_eval(ticker = searchString.upper(), 
-                                                        evaluate = False, 
-                                                        predict = True,
-                                                        savePlt = True, 
+            prediction, evaluation = self.mod.LSTM_eval(ticker     = searchString.upper(), 
+                                                        evaluate   = False, 
+                                                        predict    = True,
+                                                        savePlt    = True, 
                                                         plotWindow = 600,
-                                                        predLen = 15,
-                                                        look_back = 120)
+                                                        predLen    = 15,
+                                                        look_back  = 120,
+                                                        extendedPredict = 100,
+                                                        timestampstr    = timestampstr)
             
             stringVar = ""
             stringVar += "\n<br>\n<img src=\"static\LSTM_1_" + timestampstr + ".png\" width=\"700\">"
-            stringVar += "\n<br><br>\n<img src=\"static\LSTM_2_" + timestampstr + ".png\" width=\"700\">\n<pre>"
             for key in evaluation.keys():
                 stringVar += str(key) + ":  " + str(evaluation[key]) + "<br>"
             stringVar += "<form method=\"get\" action=\"static\LSTM_prediction.csv\">\n" 
@@ -235,6 +236,8 @@ class flaskFunctions:
             stringVar += "</form>"
             
             f.write(stringVar)
+            
+            prediction.to_csv(path_or_buf = "./static/LSTM_prediction.csv")
         
         f.close()
     
@@ -247,9 +250,9 @@ class flaskFunctions:
             searchString = form.symbol.data
             timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
             
-            model_autoARIMA, fitted, endData, mets = self.mod.autoARIMA(ticker = searchString.upper(), 
-                                                                        evaluate = False, 
-                                                                        savePlt = True,
+            model_autoARIMA, fitted, endData, mets = self.mod.autoARIMA(ticker       = searchString.upper(), 
+                                                                        evaluate     = False, 
+                                                                        savePlt      = True,
                                                                         timestampstr = timestampstr)
             
             stringVar = ""
@@ -569,7 +572,6 @@ def query():
             returnedData.set_index("DATE")
             
             return returnedData.to_json()
-    
     
     return render_template("./index.html")
 

@@ -203,12 +203,12 @@ class MLmodels:
                     print("\nNo Data associated with ticker '" + ticker + "'.")
                     return None, None, None, [None, None]
                 
-            evaluation = self.lstm_model.evaluate(trainX, [trainY[:,:,0],
-                                                           trainY[:,:,1],
-                                                           trainY[:,:,2],
-                                                           trainY[:,:,3],
-                                                           trainY[:,:,4],
-                                                           trainYc[:,:,0]])
+            evaluation = self.lstm_model.evaluate(testX, [testY[:,:,0],
+                                                          testY[:,:,1],
+                                                          testY[:,:,2],
+                                                          testY[:,:,3],
+                                                          testY[:,:,4],
+                                                          testYc[:,:,0]])
         else:
             evaluation = []
         
@@ -252,7 +252,7 @@ class MLmodels:
             plt.pyplot.savefig("./static/LSTM_1_" + timestampstr + ".png")
         
         
-        return prediction, evaluation, inputFrame
+        return prediction, evaluation
     
     
     
@@ -687,40 +687,10 @@ class MLmodels:
         # Model 6
         inLayer   = Input(shape = (look_back, 18))
         
-        # conv1     = Conv1D(10,  5,   name='conv1' )(inLayer)
-        # pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv1)
+        conv1     = Conv1D(10,  5,   name='conv1' )(inLayer)
+        pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv1)
         
-        # lstm      = LSTM(units = 112, name='LSTM')(pool)
-        
-        # dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
-        
-        # outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
-        # outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
-        # outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dense1)
-        # outClose  = Dense(predLen, name='out_close', activation = "linear" )(dense1)
-        # outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dense1)
-        # outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
-        
-        # self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
-        #                                                   outHigh, 
-        #                                                   outLow,
-        #                                                   outClose,
-        #                                                   outVol,
-        #                                                   outCat])
-        # self.compileLSTM()
-        
-        
-        
-        
-        # Model 7
-        inLayer   = Input(shape = (look_back, 18))
-        
-        conv1     = Conv1D(32,  5,   name='conv1',  activation = 'relu'  )(inLayer)
-        conv2     = Conv1D(64,  5,   name='conv2',  activation = 'relu'  )(conv1)
-        conv3     = Conv1D(32,  5,   name='conv3',  activation = 'relu'  )(conv2)
-        pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv3)
-        
-        lstm      = LSTM(units = 100, name='LSTM')(pool)
+        lstm      = LSTM(units = 112, name='LSTM')(pool)
         
         dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
         
@@ -738,6 +708,36 @@ class MLmodels:
                                                           outVol,
                                                           outCat])
         self.compileLSTM()
+        
+        
+        
+        
+        # Model 7
+        # inLayer   = Input(shape = (look_back, 18))
+        
+        # conv1     = Conv1D(32,  5,   name='conv1',  activation = 'relu'  )(inLayer)
+        # conv2     = Conv1D(64,  5,   name='conv2',  activation = 'relu'  )(conv1)
+        # conv3     = Conv1D(32,  5,   name='conv3',  activation = 'relu'  )(conv2)
+        # pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv3)
+        
+        # lstm      = LSTM(units = 100, name='LSTM')(pool)
+        
+        # dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
+        
+        # outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
+        # outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
+        # outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dense1)
+        # outClose  = Dense(predLen, name='out_close', activation = "linear" )(dense1)
+        # outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dense1)
+        # outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
+        
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
+        #                                                   outHigh, 
+        #                                                   outLow,
+        #                                                   outClose,
+        #                                                   outVol,
+        #                                                   outCat])
+        # self.compileLSTM()
         
         
         
@@ -1171,7 +1171,6 @@ class MLmodels:
     
     
     
-    
     def ARIMA(self, ticker = "", 
               confInterval = 0.2, 
               savePlt = False, 
@@ -1431,15 +1430,16 @@ if __name__ == "__main__":
                                           minDailyChange = -50, 
                                           minDailyVolume = 500000)
     
-    # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
+    mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
     
-    x = mod.LSTM_train(EpochsPerTicker = 1, 
-                        fullItterations = 30, 
-                        loadPrevious = False,
-                        look_back = 120, 
-                        trainSize = 0.9,
-                        predLen = 15, 
-                        storeTrainingDataInRAM = True)
+    # x = mod.LSTM_train(EpochsPerTicker = 1, 
+    #                     fullItterations = 30, 
+    #                     loadPrevious = False,
+    #                     look_back = 120, 
+    #                     trainSize = 0.9,
+    #                     predLen = 15, 
+    #                     storeTrainingDataInRAM = True)
+    
     
     # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
     #                                 look_back = 250,
