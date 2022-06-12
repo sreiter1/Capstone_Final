@@ -123,14 +123,18 @@ class MLmodels:
             self.prevTrainingData = folderName + prevTrainingData
             
         else:
+            print(modelToLoad)
             folders = modelToLoad.split(self.folderSeparator)[:-1]
-            self.prevTrainingData = self.folderSeparator.join(folders) + self.folderSeparator
+            folderName = self.folderSeparator.join(folders)
+            self.prevTrainingData = folderName + self.folderSeparator
             os.chdir(self.prevTrainingData)
             fileList = os.listdir()
             for file in fileList:
                 if ".csv" in file:
                     self.prevTrainingData += file
                     break
+                
+            self.modelToLoad = folderName + modelToLoad
         
         os.chdir(CWDreset)
         
@@ -309,10 +313,6 @@ class MLmodels:
             
             for ticker in tickerList:
                 tickerCounter += 1
-                
-                
-                print(trainDate)
-                
                 
                 if ticker in self.trainingData.keys():
                     trainX, trainY, trainYc = self.trainingData[ticker]
@@ -1216,12 +1216,12 @@ if __name__ == "__main__":
     
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
-                   fullItterations = 10, 
-                   loadPrevious = False,
-                   look_back = 120, 
-                   trainSize = 0.9,
-                   predLen = 15, 
-                   storeTrainingDataInRAM = True)
+                    fullItterations = 10, 
+                    loadPrevious = False,
+                    look_back = 120, 
+                    trainSize = 0.9,
+                    predLen = 15, 
+                    storeTrainingDataInRAM = True)
     
     # data = mod.getLSTMTestTrainData(ticker = "AMZN",
     #                                 look_back=250,
@@ -1240,3 +1240,9 @@ if __name__ == "__main__":
     # mod.LSTM_train(EpochsPerTicker = 10, fullItterations = 10, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
     # mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
+    
+    
+    
+    
+    
+    
