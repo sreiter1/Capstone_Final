@@ -176,49 +176,200 @@ class MLmodels:
                   plotWindow = 600,
                   timestampstr = "",
                   predLen = 15,
+                  extendedPredict = 0,
                   look_back = 120,
                   trainDate = "01-01-2020"):
         
         assert hasattr(self, "lstm_model"), "LSTM Model missing.  Train a new model with LSTM_train() or load a model with LSTM_load()."        
         
         trainSize = 0.9
-        returnOnlyTest = False
         
-        if evaluate and not predict:
+        if evaluate:
             trainSize = 1
-        if predict and not evaluate:
-            returnOnlyTest = True
-        
-        
-        if ticker in self.trainingData.keys():
-            trainX, trainY, trainYc = self.trainingData[ticker]
-            testX,  testY,  testYc  = self.testingData[ticker] 
+            
+            if ticker in self.trainingData.keys():
+                trainX, trainY, trainYc = self.trainingData[ticker]
+                testX,  testY,  testYc  = self.testingData[ticker] 
+            else:
+                try:
+                    trainX, trainY, trainYc, testX, testY, testYc = \
+                                        self.getLSTMTestTrainData(look_back = look_back,
+                                                                  ticker = ticker, 
+                                                                  trainSize = trainSize, 
+                                                                  trainDate = trainDate,
+                                                                  predLen = predLen)
+                                        
+                except (noPriceData):
+                    print("\nNo Data associated with ticker '" + ticker + "'.")
+                    return None, None, None, [None, None]
+                
+            evaluation = self.lstm_model.evaluate(trainX, [trainY[:,:,0],
+                                                           trainY[:,:,1],
+                                                           trainY[:,:,2],
+                                                           trainY[:,:,3],
+                                                           trainY[:,:,4],
+                                                           trainYc[:,:,0]])
         else:
-            try:
-                trainX, trainY, trainYc, testX, testY, testYc = \
-                                    self.getLSTMTestTrainData(look_back = look_back,
-                                                              ticker = ticker, 
-                                                              trainSize = trainSize, 
-                                                              trainDate = trainDate,
-                                                              predLen = predLen,
-                                                              returnOnlyTest = returnOnlyTest)
-                                    
-            except (noPriceData):
-                print("\nNo Data associated with ticker '" + ticker + "'.")
-                return None, None, None, [None, None]
+            evaluation = []
         
         
-        evaluation = self.lstm_model.evaluate(trainX, [trainY[:,:,0],
-                                                       trainY[:,:,1],
-                                                       trainY[:,:,2],
-                                                       trainY[:,:,3],
-                                                       trainY[:,:,4],
-                                                       trainYc[:,:,0]])
         
-        prediction = self.lstm_model.predict(testX)
+        
+            
+        if predict:
+            inputFrame = self.getLSTMPredictData(look_back = look_back,
+                                                 ticker = ticker, 
+                                                 predLen = predLen)
+            
+            X, minMaxPrice, minMaxVol = self.scaleLSTMPred(inputFrame, look_back)
+            
+            pred = self.lstm_model.predict(X)
+            
+            inputFrame = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol)
+        
+            while extendedPredict > len(inputFrame) - look_back:
+                X, minMaxPrice, minMaxVol = self.scaleLSTMPred(inputFrame.drop(["trig"], axis = 1), look_back)
+                pred = self.lstm_model.predict(X)
+                inputFrame = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol)
+            
+            prediction = inputFrame
+            
+        else: 
+            prediction = []
         
         return prediction, evaluation
     
+    
+    
+    def extendPredictData(self, prevInputs, predictions, priceScaler, volScaler):
+        predFrame = pd.DataFrame()
+        
+        predFrame["open"]  = predictions[0].flatten()
+        predFrame["high"]  = predictions[1].flatten()
+        predFrame["low"]   = predictions[2].flatten()
+        predFrame["close"] = predictions[3].flatten()
+        
+        closeList = list(predFrame["close"])
+        
+        predFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 2)
+        predFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 4)
+        predFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 6)
+        predFrame["ma08" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 8)
+        predFrame["ma10" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 10)
+        predFrame["ma12" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 12)
+        predFrame["ma14" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 14)
+        predFrame["ma16" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 16)
+        predFrame["ma18" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 18)
+        predFrame["ma20" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 20)
+        predFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 30)
+        predFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 40)
+        predFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
+        predFrame["vol"  ] = predictions[4].flatten()
+        predFrame["trig"]  = predictions[5].flatten()
+        
+        columnList = predFrame.columns
+        
+        predArray = predFrame.to_numpy()
+        predArray[:,:17] = priceScaler.inverse_transform(predArray[:,:17])
+        predArray[:,17]  = volScaler.inverse_transform(predArray[:,17].reshape(-1,1)).flatten()
+        
+        predFrame = pd.DataFrame(predArray, columns = columnList)
+        
+        inputFrame = pd.concat([prevInputs, predFrame], ignore_index = True)
+        
+        return inputFrame
+    
+    
+    
+    
+    def scaleLSTMPred(self,
+                      inputFrame,
+                      look_back):
+        
+        inputs = inputFrame.to_numpy()
+        dataX = []
+        lenInput = len(inputs)
+        print(lenInput)
+        
+        a = inputs[-look_back:]
+        dataX.append(a)
+        
+        X = np.array(dataX)
+        
+        # ----------------------------------------------
+        # scale the inputs and outputs.  Pricing data is separated from the OBV data
+        # Also need to convert to numpy array with dimmensions:
+        # [batch (i.e. time series), timesteps (i.e. trade dates), features (i.e. prices)]
+        # ----------------------------------------------
+        
+        # create scalers for the data
+        minMaxPrice = MinMaxScaler()
+        minMaxVol   = MinMaxScaler()
+    
+        for i in range(len(X)):
+            # track progress:
+            print("\rProcessing Prediction Space: (" + str('=' * int(20*i/len(X) + 1)).ljust(20) + ")    ", end = "")
+            
+            fitList = self.getFitArray(max(X[i,:,1]), min(X[i,:,2]), 17)  #should small (min) be 0?  or min('low')?
+            minMaxPrice.fit(fitList)
+            X[i,:,:17] = minMaxPrice.transform(X[i,:,:17])
+            
+            X[i,:, 17] = minMaxVol.fit_transform(X[i,:,17].reshape(-1,1)).flatten()
+            
+        return X, minMaxPrice, minMaxVol
+    
+    
+    
+    
+    def getLSTMPredictData(self, 
+                           look_back = 120,
+                           ticker = "", 
+                           predLen = 15):
+        
+        loadedData, t = self.analysis.loadFromDB(tickerList = [ticker],
+                                                 indicators = ["MA20", "OBV", "IDEAL"],
+                                                 extras = ["HIGH", "LOW", "ADJRATIO", "VOLUME",
+                                                           "IDEAL_HIGH", "IDEAL_LOW", "IDEAL_TRIG"])
+        
+        if len(loadedData) == 0:
+            raise noPriceData("No Price Data associated with ticker '" + ticker + "'.")
+        
+        loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
+        loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
+        loadedData = loadedData.iloc[-(look_back + 1):]
+        
+        # ensure that the adjustment ratio does not cause a div-by-0 error
+        assert min(loadedData["adjustment_ratio"]) > 0, "\n\n  ERROR: adjustment ratio has 0-value.  Verify correct input data.  Ticker = " + ticker
+        
+        # create the input frames that will be translated to numpy arrays
+        inputFrame  = pd.DataFrame()
+        
+        print("Processing Indicators for " + ticker.rjust(6) + "    ")
+        
+        inputFrame["open" ] = [o/a for o,a in zip(loadedData["open"],  loadedData["adjustment_ratio"])]
+        inputFrame["high" ] = [h/a for h,a in zip(loadedData["high"],  loadedData["adjustment_ratio"])]
+        inputFrame["low"  ] = [l/a for l,a in zip(loadedData["low"],   loadedData["adjustment_ratio"])]
+        inputFrame["close"] = [c/a for c,a in zip(loadedData["close"], loadedData["adjustment_ratio"])]
+        
+        closeList = list(inputFrame["close"])
+        
+        inputFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 2)
+        inputFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 4)
+        inputFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 6)
+        inputFrame["ma08" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 8)
+        inputFrame["ma10" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 10)
+        inputFrame["ma12" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 12)
+        inputFrame["ma14" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 14)
+        inputFrame["ma16" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 16)
+        inputFrame["ma18" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 18)
+        inputFrame["ma20" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 20)
+        inputFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 30)
+        inputFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 40)
+        inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
+        inputFrame["vol"  ] = [v*1 for v in loadedData["volume"]]
+        
+        return inputFrame
+        
     
     
     
@@ -641,8 +792,7 @@ class MLmodels:
                              ticker = "", 
                              trainSize = -1, 
                              trainDate = "01-01-2020",
-                             predLen = 15,
-                             returnOnlyTest = False):
+                             predLen = 15):
         
         loadedData, t = self.analysis.loadFromDB(tickerList = [ticker],
                                                  indicators = ["MA20", "OBV", "IDEAL"],
@@ -655,18 +805,12 @@ class MLmodels:
         
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
-        
-        
-        # cut the loadedData to just what is required for the test/prediction to 
-        # save a lot of processing time
-        if returnOnlyTest:
-            loadedData = loadedData.iloc[-2*look_back:]
     
         # set the training size to be either a decimal from the funciton input, or to a all records before a set date
         if trainSize == -1:
             trainLen = len(loadedData.loc[loadedData["recordDate"] < pd.to_datetime(trainDate)])
         elif 0 < trainSize and trainSize <= 1:
-            trainLen = int(trainSize * (len(loadedData["recordDate"]) - look_back) - 1)
+            trainLen = int(trainSize * (len(loadedData["recordDate"]) - look_back - predLen) - 1)
         elif trainSize > 1:
             trainLen = min(int(trainSize), len(loadedData["recordDate"] - 1))
         else:
@@ -704,19 +848,13 @@ class MLmodels:
         inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
         inputFrame["vol"  ] = loadedData["volume"] 
         
-        outputFrame["open"]  = inputFrame["open"  ].shift(periods = -1)
-        outputFrame["high"]  = inputFrame["high"  ].shift(periods = -1)
-        outputFrame["low"]   = inputFrame["low"   ].shift(periods = -1)
-        outputFrame["close"] = inputFrame["close" ].shift(periods = -1)
-        outputFrame["vol" ]  = inputFrame["vol"   ].shift(periods = -1)
+        outputFrame["open"]  = inputFrame["open"  ]
+        outputFrame["high"]  = inputFrame["high"  ]
+        outputFrame["low"]   = inputFrame["low"   ]
+        outputFrame["close"] = inputFrame["close" ]
+        outputFrame["vol" ]  = inputFrame["vol"   ]
         
         outputFrame["trig"] = [1 if t==1 else 0 for t in loadedData["ideal_return_trig"]]
-        
-        
-        print(trainLen)
-        print(len(loadedData))
-        print(len(inputFrame))
-        
         
         # reshape / modify the inputs and outputs to match the LSTM expectations
         # and separeate into test and train sets
@@ -1245,14 +1383,15 @@ if __name__ == "__main__":
                                           minDailyChange = -50, 
                                           minDailyVolume = 500000)
     
+    mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
     
-    x = mod.LSTM_train(EpochsPerTicker = 1, 
-                       fullItterations = 10, 
-                       loadPrevious = False,
-                       look_back = 120, 
-                       trainSize = 0.9,
-                       predLen = 15, 
-                       storeTrainingDataInRAM = True)
+    # x = mod.LSTM_train(EpochsPerTicker = 1, 
+    #                    fullItterations = 10, 
+    #                    loadPrevious = False,
+    #                    look_back = 120, 
+    #                    trainSize = 0.9,
+    #                    predLen = 15, 
+    #                    storeTrainingDataInRAM = True)
     
     # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
     #                                 look_back = 250,
