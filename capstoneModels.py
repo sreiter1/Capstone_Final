@@ -712,7 +712,12 @@ class MLmodels:
         
         outputFrame["trig"] = [1 if t==1 else 0 for t in loadedData["ideal_return_trig"]]
         
-    
+        
+        print(trainLen)
+        print(len(loadedData))
+        print(len(inputFrame))
+        
+        
         # reshape / modify the inputs and outputs to match the LSTM expectations
         # and separeate into test and train sets
         trainX, trainY, trainYc, testX, testY, testYc =  self.splitLSTMData(inputFrame.to_numpy(), 
