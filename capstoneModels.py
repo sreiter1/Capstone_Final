@@ -124,9 +124,10 @@ class MLmodels:
             
         else:
             print(modelToLoad)
-            folders = modelToLoad.split(self.folderSeparator)[:-1]
-            folderName = self.folderSeparator.join(folders)
-            self.prevTrainingData = folderName + self.folderSeparator
+            folders = modelToLoad.split(self.folderSeparator)
+            folderName  = self.folderSeparator.join(folders[:-1]) 
+            folderName += self.folderSeparator
+            self.prevTrainingData = folderName 
             os.chdir(self.prevTrainingData)
             fileList = os.listdir()
             for file in fileList:
@@ -134,7 +135,7 @@ class MLmodels:
                     self.prevTrainingData += file
                     break
                 
-            self.modelToLoad = folderName + modelToLoad
+            self.modelToLoad = folderName + folders[-1]
         
         os.chdir(CWDreset)
         
@@ -169,37 +170,54 @@ class MLmodels:
     
     
     def LSTM_eval(self, ticker = "",
-                  savePlt = False, 
+                  savePlt  = False, 
                   evaluate = True, 
+                  predict  = True,
                   plotWindow = 600,
                   timestampstr = "",
-                  predLen = 30,
+                  predLen = 15,
                   look_back = 120,
                   trainDate = "01-01-2020"):
         
         assert hasattr(self, "lstm_model"), "LSTM Model missing.  Train a new model with LSTM_train() or load a model with LSTM_load()."        
         
-        if evaluate:
-            trainSize = -1
+        trainSize = 0.9
+        returnOnlyTest = False
+        
+        if evaluate and not predict:
+            trainSize = 1
+        if predict and not evaluate:
+            returnOnlyTest = True
+        
+        
+        if ticker in self.trainingData.keys():
+            trainX, trainY, trainYc = self.trainingData[ticker]
+            testX,  testY,  testYc  = self.testingData[ticker] 
         else:
-            trainSize = 0.9
+            try:
+                trainX, trainY, trainYc, testX, testY, testYc = \
+                                    self.getLSTMTestTrainData(look_back = look_back,
+                                                              ticker = ticker, 
+                                                              trainSize = trainSize, 
+                                                              trainDate = trainDate,
+                                                              predLen = predLen,
+                                                              returnOnlyTest = returnOnlyTest)
+                                    
+            except (noPriceData):
+                print("\nNo Data associated with ticker '" + ticker + "'.")
+                return None, None, None, [None, None]
         
-        try:
-            trainX, trainY, trainYc, testX, testY, testYc = \
-                                self.getLSTMTestTrainData(look_back = look_back,
-                                                          ticker = ticker, 
-                                                          trainSize = trainSize, 
-                                                          trainDate = trainDate,
-                                                          predLen = predLen)
-        except (noPriceData):
-            print("\nNo Data associated with ticker '" + ticker + "'.")
-            return None, None, None, [None, None]
         
+        evaluation = self.lstm_model.evaluate(trainX, [trainY[:,:,0],
+                                                       trainY[:,:,1],
+                                                       trainY[:,:,2],
+                                                       trainY[:,:,3],
+                                                       trainY[:,:,4],
+                                                       trainYc[:,:,0]])
         
-        evaluation = self.lstm_model.evaluate(testX, [testY, testYc])
         prediction = self.lstm_model.predict(testX)
         
-        return prediction, evaluation, testX, [testY, testYc]
+        return prediction, evaluation
     
     
     
@@ -212,7 +230,7 @@ class MLmodels:
                    trainSize = -1, 
                    trainDate = "01-01-2020",
                    loadPrevious = True,
-                   predLen = 30,
+                   predLen = 15,
                    storeTrainingDataInRAM = False):
         
         np.random.seed(randomSeed)
@@ -397,7 +415,7 @@ class MLmodels:
     
     
     
-    def createLSTMNetwork(self, look_back, predLen = 30):
+    def createLSTMNetwork(self, look_back, predLen = 15):
         # Model 1:
         # inLayer = Input(shape = (look_back, 7))
         # hidden1 = LSTM(120,  name='LSTM',    activation = "sigmoid")(inLayer)
@@ -577,7 +595,7 @@ class MLmodels:
                       outputs_c, 
                       look_back = 120, 
                       trainSize = 0.8, 
-                      predLen = 30):
+                      predLen = 15):
         # takes 2D np array of data with axes of time (i.e. trading days) and features,
         # and returns a 3D np array of batch, time, features
         
@@ -623,7 +641,8 @@ class MLmodels:
                              ticker = "", 
                              trainSize = -1, 
                              trainDate = "01-01-2020",
-                             predLen = 30):
+                             predLen = 15,
+                             returnOnlyTest = False):
         
         loadedData, t = self.analysis.loadFromDB(tickerList = [ticker],
                                                  indicators = ["MA20", "OBV", "IDEAL"],
@@ -637,11 +656,18 @@ class MLmodels:
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
         
+        
+        # cut the loadedData to just what is required for the test/prediction to 
+        # save a lot of processing time
+        if returnOnlyTest:
+            loadedData = loadedData.iloc[-2*look_back:]
+        
+        
         # set the training size to be either a decimal from the funciton input, or to a all records before a set date
         if trainSize == -1:
             trainLen = len(loadedData.loc[loadedData["recordDate"] < pd.to_datetime(trainDate)])
         elif 0 < trainSize and trainSize <= 1:
-            trainLen = int(trainSize * (len(loadedData["recordDate"]) - look_back))
+            trainLen = int(trainSize * (len(loadedData["recordDate"]) - look_back) - 1)
         elif trainSize > 1:
             trainLen = min(int(trainSize), len(loadedData["recordDate"] - 1))
         else:
@@ -1189,8 +1215,10 @@ class MLmodels:
         else:
             metrics = {}
             
-        endData = pd.concat([fc_series["mean_pred"], lower_series["lower_conf"], 
-                             upper_series["upper_conf"], priceData["adj_close"]], axis = 1)
+        endData = pd.concat([fc_series["mean_pred"], 
+                             lower_series["lower_conf"], 
+                             upper_series["upper_conf"], 
+                             priceData["adj_close"]], axis = 1)
         plt.pyplot.close("all")
         
         return model_autoARIMA, fitted, endData, metrics
@@ -1216,17 +1244,17 @@ if __name__ == "__main__":
     
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
-                    fullItterations = 10, 
-                    loadPrevious = False,
-                    look_back = 120, 
-                    trainSize = 0.9,
-                    predLen = 15, 
-                    storeTrainingDataInRAM = True)
+                       fullItterations = 10, 
+                       loadPrevious = False,
+                       look_back = 120, 
+                       trainSize = 0.9,
+                       predLen = 15, 
+                       storeTrainingDataInRAM = True)
     
-    # data = mod.getLSTMTestTrainData(ticker = "AMZN",
-    #                                 look_back=250,
-    #                                 trainSize=0.9,
-    #                                 predLen = 30)
+    # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
+    #                                 look_back = 250,
+    #                                 trainSize = 0.9,
+    #                                 predLen   = 30)
     
     # data = mod.LSTM_load()
     # prediction, evaluation, testX, [testYr, testYc] = mod.LSTM_eval(ticker = "TSLA", evaluate = False)

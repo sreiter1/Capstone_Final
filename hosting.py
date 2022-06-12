@@ -1,11 +1,26 @@
 #!flask/bin/python
-from flask import Flask, jsonify, render_template, flash, request, redirect, url_for
+from flask import Flask
+from flask import jsonify
+from flask import render_template
+from flask import flash
+from flask import request
+from flask import redirect
+from flask import url_for
+
 from flask_wtf import FlaskForm, Form
 import capstoneModels
-from wtforms import StringField, SubmitField, RadioField, SelectField, SelectMultipleField, widgets
+
+from wtforms import StringField
+from wtforms import SubmitField
+from wtforms import RadioField
+from wtforms import SelectField
+from wtforms import SelectMultipleField
+from wtforms import widgets
+
 from wtforms.validators import InputRequired
 import os
 import datetime as dt
+import pandas as pd
 
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
@@ -49,6 +64,7 @@ extraList = [("00",  'OPEN'),
 class flaskFunctions:
     def __init__(self, mod):
         self.mod = mod
+        self.mod.LSTM_load()
     
     # Create A Search Form
     class SearchForm(FlaskForm):
@@ -201,18 +217,19 @@ class flaskFunctions:
             searchString = form.symbol.data
             timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
             
-            self.mod.LSTM_load()
-            model_LSTM, fitted, endData, mets = self.mod.LSTM_eval(ticker = searchString.upper(), 
-                                                                   evaluate = False, 
-                                                                   savePlt = True,
-                                                                   timestampstr = timestampstr)
+            prediction, evaluation = self.mod.LSTM_eval(ticker = searchString.upper(), 
+                                                        evaluate = False, 
+                                                        predict = True,
+                                                        savePlt = True, 
+                                                        plotWindow = 600,
+                                                        predLen = 15,
+                                                        look_back = 120)
             
             stringVar = ""
             stringVar += "\n<br>\n<img src=\"static\LSTM_1_" + timestampstr + ".png\" width=\"700\">"
             stringVar += "\n<br><br>\n<img src=\"static\LSTM_2_" + timestampstr + ".png\" width=\"700\">\n<pre>"
-            for key in mets.keys():
-                stringVar += str(key) + ":  " + str(mets[key]) + "<br>"
-            stringVar += "<br>" + str(fitted.summary()) + "</pre>"
+            for key in evaluation.keys():
+                stringVar += str(key) + ":  " + str(evaluation[key]) + "<br>"
             stringVar += "<form method=\"get\" action=\"static\LSTM_prediction.csv\">\n" 
             stringVar += "<button type=\"submit\">Download CSV</button>\n"
             stringVar += "</form>"
@@ -294,10 +311,10 @@ class flaskFunctions:
             searchString = form.symbol.data
             timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
             
-            tree, endData, mets = self.mod.linearRegression(ticker = searchString.upper(), 
-                                                            evaluate = False, 
-                                                            savePlt = True,
-                                                            timestampstr = timestampstr)
+            Linear, endData, mets = self.mod.linearRegression(ticker = searchString.upper(), 
+                                                              evaluate = False, 
+                                                              savePlt = True,
+                                                              timestampstr = timestampstr)
              
             stringVar = ""
             stringVar += "\n<br>\n<img src=\"static\Linear_1_" + timestampstr + ".png\" width=\"700\">\n<pre>"
@@ -319,18 +336,15 @@ class flaskFunctions:
         
     
     def symbolUpdate(self, form):
-        f = open("./templates/stockUpdate.html", "w")
         if form.validate_on_submit():
-            pass
-            # searchString = form.symbol.data
-            # returnedData, t = self.mod.analysis.loadFromDB(tickerList = [searchString.upper()], 
-            #                                                indicators = ["MA20", "MA50"],
-            #                                                withTriggers = False)
             
+            searchString = form.symbol.data
             
-            # f.write(returnedData.to_html(classes = "tickertable\" id=\"companyList"))
-        
-        f.close()
+            self.mod.stockdata.autoUpdate(stockList = [searchString.upper()])
+            self.mod.indicators.autoSaveIndicators()
+            self.mod.indicators.populateSummaryData()
+            self.mod.analysis.storeTriggers(tickerList = self.mod.analysis._tickerList)
+            
     
     
     
@@ -456,6 +470,109 @@ def shutdown_server():
     func()
     
     
+
+
+
+
+@app.route('/query', methods=["GET"])
+def query():
+    
+    if(request.method == 'GET'):
+        function  = request.args.get('function')
+        ticker    = request.args.get('symbol')
+        startDate = request.args.get('date')
+        
+        timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
+        
+        
+        if function == "LSTM":
+            prediction, evaluation, testX, testY = \
+                flaskFunc.mod.LSTM_eval(ticker = ticker.upper(), 
+                                        evaluate = False, 
+                                        savePlt = True, 
+                                        plotWindow = 600,
+                                        predLen = 15,
+                                        look_back = 120)
+            
+            df = pd.DataFrame(prediction, 
+                              columns = ['open',
+                                         'high',
+                                         'low', 
+                                         'close',
+                                         'vol'])
+            return df.to_json()
+            
+            
+        elif function == "ARIMA":
+            model, fitted, endData, mets = \
+                flaskFunc.mod.autoARIMA(ticker = ticker.upper(), 
+                                        evaluate = False, 
+                                        savePlt = True,
+                                        timestampstr = timestampstr)
+            
+            endData = endData.drop(columns = ["adj_close"])
+            endData = endData.dropna(how='any', axis=0)
+            return endData.to_json()
+        
+            
+        elif function == "Tree":
+            model, endData, mets = flaskFunc.mod.Trees(ticker = ticker.upper(), 
+                                                       evaluate = False, 
+                                                       savePlt = True)
+            
+            endData = endData["treePrediction"]
+            endData = endData.dropna(how='any', axis=0)
+            return endData.to_json()
+            
+        elif function == "Linear":
+            model, endData, mets = flaskFunc.mod.linearRegression(ticker = ticker.upper(), 
+                                                                  evaluate = False, 
+                                                                  savePlt = True)
+            
+            endData = endData["val"]
+            endData = endData.dropna(how='any', axis=0)
+            return endData.to_json()
+            
+        elif function == "update":
+            flaskFunc.mod.stockdata.autoUpdate(stockList = [ticker.upper()])
+            flaskFunc.mod.indicators.autoSaveIndicators()
+            flaskFunc.mod.indicators.populateSummaryData()
+            flaskFunc.mod.analysis.storeTriggers(tickerList = flaskFunc.mod.analysis._tickerList)
+            
+        elif function == "raw":
+            
+            indicators = []
+            extras = []
+            
+            for i in indicatorList:
+                indicators.append(i[1])
+            for e in extraList:
+                extras.append(e[1])
+            for e in ["OPEN", "CLOSE", "ADJCLOSE"]:
+                extras.remove(e)
+                
+            
+            returnedData, t = flaskFunc.mod.analysis.loadFromDB(tickerList   = [ticker.upper()], 
+                                                                indicators   = indicators,
+                                                                extras       = extras)
+            inv_map = {v: k for k, v in flaskFunc.mod.analysis._dailyConversionTable.items()}
+            inv_map["ticker_symbol"] = "SYMBOL"
+            inv_map["recordDate"] = "DATE"
+            colNames = list(returnedData.columns)
+            renameDict = {}
+            
+            for col in colNames:
+                renameDict[col] = inv_map[col]
+            
+            returnedData.rename(columns = renameDict, inplace = True)
+            
+            returnedData.set_index("DATE")
+            
+            return returnedData.to_json()
+    
+    
+    return render_template("./index.html")
+
 
 
 

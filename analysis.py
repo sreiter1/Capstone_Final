@@ -12,6 +12,7 @@ import commonUtilities
 import matplotlib.pyplot as plt
 import warnings
 import random
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -23,6 +24,8 @@ class missingTicker(Exception):
 
 class analysis:
     def __init__(self, dataBaseSaveFile = "./stockData.db", dataBaseThreadCheck = True):
+        self.dataBaseSaveFile = dataBaseSaveFile
+        self.dataBaseThreadCheck = dataBaseThreadCheck
         self.DB = sqlite3.connect(dataBaseSaveFile, check_same_thread=dataBaseThreadCheck)
         self.mainDBName = dataBaseSaveFile
         self._cur = self.DB.cursor()
@@ -564,8 +567,6 @@ class analysis:
         results = pd.DataFrame()
         trigList = []
         
-        print()
-        
         for tick in tickerList:
             # print("\rRetrieving ticker:  '" + str(tick).ljust(6) + "'  with indicators:  " + str(indicators) + ".             ", end = "")
             argList = []
@@ -596,17 +597,19 @@ class analysis:
         
         trigList.pop()
         
-        print()
         return results, trigList
     
     
     
-    def copyTimeSeriesToNewDatabase(self, newDBName, tableName = "daily_adjusted", delCurrentTable = True):
+    def copyTimeSeriesToNewDatabase(self, 
+                                    newDBName, 
+                                    delCurrentTable = True,
+                                    numSplitDatabases = 1):
+        
         if self._tickerList == []:
             raise ValueError("Selected Ticker List is empty.  Run 'filterStocksFromDataBase()' to add tickers to the list.")
         if newDBName == "" or not isinstance(newDBName, str) or newDBName == self.mainDBName:
             raise ValueError("Database Name is not valid.")
-        
         
         # get the schema from the existing table of time series data
         # https://www.sqlitetutorial.net/sqlite-describe-table/
@@ -617,42 +620,150 @@ class analysis:
                                              OR name = 'ticker_symbol_list';""").fetchall()
         
         # convert the returned tuple to an executable SQL string command
-        summaryText = schemaText[0][0][schemaText[0][0].find('('):]
-        symbolText  = schemaText[1][0][schemaText[1][0].find('('):]
-        dailyText   = schemaText[2][0][schemaText[2][0].find('('):]
+        dailyText   = ""
+        symbolText  = ""
+        summaryText = ""
+        
+        # convert the returned tuple to an executable SQL string command
+        for i in range(3):
+            if "daily_adjusted" in schemaText[i][0]:
+                dailyText   = schemaText[i][0][schemaText[i][0].find('('):]
+            elif "ticker_symbol_list" in schemaText[i][0]:
+                symbolText  = schemaText[i][0][schemaText[i][0].find('('):]
+            elif "summary_data" in schemaText[i][0]:
+                summaryText = schemaText[i][0][schemaText[i][0].find('('):]
+        
+        n = 0
+        tempTickerList = self._tickerList.copy()
+        countPerDatabase = int(len(self._tickerList) / numSplitDatabases) + 1
+        
+        for i in range(numSplitDatabases):
+            # create a new database and add a copy of the time series table schema
+            self._cur.execute("ATTACH DATABASE ? AS newDB;", [newDBName.split(".")[0] + "_" + str(i) + ".db"])
+            if delCurrentTable:
+                self._cur.execute("DROP TABLE IF EXISTS newDB.daily_adjusted;")
+                self._cur.execute("DROP TABLE IF EXISTS newDB.summary_data;")
+                self._cur.execute("DROP TABLE IF EXISTS newDB.ticker_symbol_list;")
+                
+            self._cur.execute("CREATE TABLE newDB.daily_adjusted" + dailyText + ";")
+            self._cur.execute("CREATE TABLE newDB.summary_data" + summaryText + ";")
+            self._cur.execute("CREATE TABLE newDB.ticker_symbol_list" + symbolText + ";")
+            
+            
+            for j in range(countPerDatabase):
+                n += 1
+                ticker = self._tickerList[j + (countPerDatabase * i)]
+                print("\rCopying ticker:  " + ticker.rjust(6) + "   (" + str(n).rjust(5) + " of " + str(len(self._tickerList)).ljust(6) + ").        ", end = "")
+                self._cur.execute("""INSERT INTO newDB.daily_adjusted 
+                                     SELECT * FROM main.daily_adjusted
+                                     WHERE ticker_symbol = ?;""", [ticker])
+                                     
+                self._cur.execute("""INSERT INTO newDB.summary_data 
+                                     SELECT * FROM main.summary_data
+                                     WHERE ticker_symbol = ?;""", [ticker])
+                                     
+                self._cur.execute("""INSERT INTO newDB.ticker_symbol_list 
+                                     SELECT * FROM main.ticker_symbol_list
+                                     WHERE ticker_symbol = ?;""", [ticker])
+                
+                
+                tempTickerList.remove(ticker)
+                
+                if n == len(self._tickerList) - 1:
+                    break
+            
+            self.DB.commit()
+            self._cur.execute("DETACH DATABASE newDB;")
+            
+        
+        print("\nComplete.")
+        return tempTickerList
+    
+    
+    
+    def recombinePartialDatabases(self, partialDBName, targetDBName = "", delCurrentTable = True):
+        
+        if partialDBName == "" or not isinstance(partialDBName, str) or partialDBName == self.mainDBName:
+            raise ValueError("Database Name is not valid.")
+            
+        if targetDBName == "":
+            targetDBName = self.mainDBName
+        
+        fileList = os.listdir()
+        
+        dbList = []
+        for file in fileList:
+            if partialDBName in file and file.split("_")[-1].split(".")[0].isdigit():
+                dbList.append(file)
+    
+        
+        if dbList == []:
+            raise ValueError("File list is empty.  Check database name (do not include the '.db' file extension).")
+        
+        
+        self._cur.execute("ATTACH DATABASE ? AS partialDB;", [dbList[0]])
+        
+        # get the schema from the existing table of time series data
+        # https://www.sqlitetutorial.net/sqlite-describe-table/
+        schemaText = self._cur.execute("""SELECT sql 
+                                          FROM partialDB.sqlite_schema 
+                                          WHERE name = 'daily_adjusted'
+                                             OR name = 'summary_data'
+                                             OR name = 'ticker_symbol_list';""").fetchall()
+        
+        
+        dailyText   = ""
+        symbolText  = ""
+        summaryText = ""
+        
+        # convert the returned tuple to an executable SQL string command
+        for i in range(3):
+            if "daily_adjusted" in schemaText[i][0]:
+                dailyText   = schemaText[i][0][schemaText[i][0].find('('):]
+            elif "ticker_symbol_list" in schemaText[i][0]:
+                symbolText  = schemaText[i][0][schemaText[i][0].find('('):]
+            elif "summary_data" in schemaText[i][0]:
+                summaryText = schemaText[i][0][schemaText[i][0].find('('):]
+        
+        
+        self._cur.execute("DETACH DATABASE partialDB;")
         
         
         # create a new database and add a copy of the time series table schema
-        self._cur.execute("ATTACH DATABASE ? AS newDB;", [newDBName])
+        self._cur.execute("ATTACH DATABASE ? AS combinedDB;", [targetDBName])
         if delCurrentTable:
-            self._cur.execute("DROP TABLE IF EXISTS newDB.daily_adjusted;")
-            self._cur.execute("DROP TABLE IF EXISTS newDB.summary_data;")
-            self._cur.execute("DROP TABLE IF EXISTS newDB.ticker_symbol_list;")
+            self._cur.execute("DROP TABLE IF EXISTS combinedDB.daily_adjusted;")
+            self._cur.execute("DROP TABLE IF EXISTS combinedDB.summary_data;")
+            self._cur.execute("DROP TABLE IF EXISTS combinedDB.ticker_symbol_list;")
             
-        self._cur.execute("CREATE TABLE newDB.daily_adjusted" + dailyText + ";")
-        self._cur.execute("CREATE TABLE newDB.summary_data" + summaryText + ";")
-        self._cur.execute("CREATE TABLE newDB.ticker_symbol_list" + symbolText + ";")
+        self._cur.execute("CREATE TABLE combinedDB.daily_adjusted" + dailyText + ";")
+        self._cur.execute("CREATE TABLE combinedDB.summary_data" + summaryText + ";")
+        self._cur.execute("CREATE TABLE combinedDB.ticker_symbol_list" + symbolText + ";")
         
-        n = 0
-        for ticker in self._tickerList:
-            n += 1
-            print("\rCopying ticker:  " + ticker.rjust(6) + "   (" + str(n).rjust(5) + " of " + str(len(self._tickerList)).ljust(6) + ").", end = "")
-            self._cur.execute("""INSERT INTO newDB.daily_adjusted 
-                                 SELECT * FROM main.daily_adjusted
-                                 WHERE ticker_symbol = ?;""", [ticker])
-                                 
-            self._cur.execute("""INSERT INTO newDB.summary_data 
-                                 SELECT * FROM main.summary_data
-                                 WHERE ticker_symbol = ?;""", [ticker])
-                                 
-            self._cur.execute("""INSERT INTO newDB.ticker_symbol_list 
-                                 SELECT * FROM main.ticker_symbol_list
-                                 WHERE ticker_symbol = ?;""", [ticker])
         
-        self.DB.commit()
-        self._cur.execute("DETACH DATABASE newDB;")
+        for i in range(len(dbList)):
+            print("\rCopying database:  " + dbList[i].rjust(6) + "   (" + str(i+1).rjust(2) + " of " + str(len(dbList)).ljust(2) + ").        ", end = "")
+            
+            self._cur.execute("ATTACH DATABASE ? AS partialDB;", [dbList[i]])
+            
+            self._cur.execute("""INSERT INTO combinedDB.daily_adjusted 
+                                 SELECT * FROM partialDB.daily_adjusted;""")
+                                 
+            self._cur.execute("""INSERT INTO combinedDB.summary_data 
+                                 SELECT * FROM partialDB.summary_data;""")
+                                 
+            self._cur.execute("""INSERT INTO combinedDB.ticker_symbol_list 
+                                 SELECT * FROM partialDB.ticker_symbol_list;""")
+            
+            self.DB.commit()
+            self._cur.execute("DETACH DATABASE partialDB;")
+        
+        
+        self._cur.execute("DETACH DATABASE combinedDB;")
+        
         print("\nComplete.")
         return
+    
     
     
     
@@ -725,18 +836,16 @@ class analysis:
 
 if __name__ == "__main__":
     ana = analysis()
-    data = ana.filterStocksFromDataBase(dailyLength = 1250, 
-                                          maxDailyChange = 50, 
-                                          minDailyChange = -50, 
-                                          minDailyVolume = 500000)
+    data = ana.filterStocksFromDataBase(dailyLength = 300, 
+                                        minDailyVolume = 10)
     
     print("Number of stocks selected:  " + str(len(ana._tickerList)) + ".             ")
     
     # new = ana.storeTriggers(tickerList = ana._tickerList)
     # data = ana.plotIndicators(tickerList = ana._tickerList)
     # ana.copyTimeSeriesToCSV("copyOfDB.csv")
-    schemaText = ana.copyTimeSeriesToNewDatabase("stockDB_partial.db")
-    
+    # schemaText = ana.copyTimeSeriesToNewDatabase("stockDB_partial.db", numSplitDatabases = 5)
+    data2 = ana.recombinePartialDatabases(partialDBName = "stockDB_partial", targetDBName = "stockDB_partial.db")
     
     
     
