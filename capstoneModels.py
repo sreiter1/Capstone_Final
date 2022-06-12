@@ -671,11 +671,6 @@ class MLmodels:
             trainLen = min(int(trainSize), len(loadedData["recordDate"] - 1))
         else:
             trainLen = int(0.8 * (len(loadedData["recordDate"]) - look_back))
-            
-            
-        
-        return loadedData, trainLen
-            
         
         # ensure that the adjustment ratio does not cause a div-by-0 error
         assert min(loadedData["adjustment_ratio"]) > 0, "\n\n  ERROR: adjustment ratio has 0-value.  Verify correct input data.  Ticker = " + ticker
