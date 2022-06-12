@@ -661,8 +661,7 @@ class MLmodels:
         # save a lot of processing time
         if returnOnlyTest:
             loadedData = loadedData.iloc[-2*look_back:]
-        
-        
+    
         # set the training size to be either a decimal from the funciton input, or to a all records before a set date
         if trainSize == -1:
             trainLen = len(loadedData.loc[loadedData["recordDate"] < pd.to_datetime(trainDate)])
@@ -672,6 +671,10 @@ class MLmodels:
             trainLen = min(int(trainSize), len(loadedData["recordDate"] - 1))
         else:
             trainLen = int(0.8 * (len(loadedData["recordDate"]) - look_back))
+            
+            
+        
+        return loadedData, trainLen
             
         
         # ensure that the adjustment ratio does not cause a div-by-0 error

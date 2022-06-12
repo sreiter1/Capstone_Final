@@ -700,6 +700,7 @@ class analysis:
         if dbList == []:
             raise ValueError("File list is empty.  Check database name (do not include the '.db' file extension).")
         
+        dbList.sort()
         
         self._cur.execute("ATTACH DATABASE ? AS partialDB;", [dbList[0]])
         

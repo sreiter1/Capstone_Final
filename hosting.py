@@ -64,7 +64,7 @@ extraList = [("00",  'OPEN'),
 class flaskFunctions:
     def __init__(self, mod):
         self.mod = mod
-        self.mod.LSTM_load()
+        self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
     
     # Create A Search Form
     class SearchForm(FlaskForm):
