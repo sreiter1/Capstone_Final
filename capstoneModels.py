@@ -286,13 +286,14 @@ class MLmodels:
                       inputFrame,
                       look_back):
         
+        inputFrame = inputFrame.iloc[-2*look_back:]
         inputs = inputFrame.to_numpy()
         dataX = []
         lenInput = len(inputs)
-        print(lenInput)
         
-        a = inputs[-look_back:]
-        dataX.append(a)
+        for i in range(lenInput - look_back):
+            a = inputs[i:(i+look_back)]
+            dataX.append(a)
         
         X = np.array(dataX)
         
@@ -336,7 +337,7 @@ class MLmodels:
         
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
-        loadedData = loadedData.iloc[-(look_back + 1):]
+        loadedData = loadedData.iloc[-(2*look_back + 1):]
         
         # ensure that the adjustment ratio does not cause a div-by-0 error
         assert min(loadedData["adjustment_ratio"]) > 0, "\n\n  ERROR: adjustment ratio has 0-value.  Verify correct input data.  Ticker = " + ticker
@@ -697,9 +698,10 @@ class MLmodels:
         # Model 7
         inLayer   = Input(shape = (look_back, 18))
         
-        conv1     = Conv1D(30,  5,   name='conv1' )(inLayer)
-        conv2     = Conv1D(30,  5,   name='conv2' )(conv1)
-        pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv2)
+        conv1     = Conv1D(32,  5,   name='conv1',  activation = 'relu'  )(inLayer)
+        conv2     = Conv1D(64,  5,   name='conv2',  activation = 'relu'  )(conv1)
+        conv3     = Conv1D(32,  5,   name='conv3',  activation = 'relu'  )(conv2)
+        pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv3)
         
         lstm      = LSTM(units = 100, name='LSTM')(pool)
         
