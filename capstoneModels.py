@@ -524,7 +524,7 @@ class MLmodels:
                             tempTestYc  = np.copy(testYc)
                             
                             for i in range(min(generateExtraSamples,2)):
-                                print("\rGenerating additional samples for ticker " + ticker.rjust(6) = "                    ", end = "")
+                                print("\rGenerating additional samples for ticker " + ticker.rjust(6) + "                    ", end = "")
                                 rand1 = np.random.random()
                                 rand2 = np.random.random()
                                 
