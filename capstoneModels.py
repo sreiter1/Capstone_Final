@@ -713,23 +713,57 @@ class MLmodels:
         
         
         # Model 7
+        # inLayer   = Input(shape = (look_back, 18))
+        
+        # conv1     = Conv1D(32,  5,   name='conv1',  activation = 'relu'  )(inLayer)
+        # conv2     = Conv1D(64,  5,   name='conv2',  activation = 'relu'  )(conv1)
+        # conv3     = Conv1D(32,  5,   name='conv3',  activation = 'relu'  )(conv2)
+        # pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv3)
+        
+        # lstm      = LSTM(units = 100, name='LSTM')(pool)
+        
+        # dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
+        
+        # outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
+        # outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
+        # outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dense1)
+        # outClose  = Dense(predLen, name='out_close', activation = "linear" )(dense1)
+        # outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dense1)
+        # outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
+        
+        # self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
+        #                                                   outHigh, 
+        #                                                   outLow,
+        #                                                   outClose,
+        #                                                   outVol,
+        #                                                   outCat])
+        # self.compileLSTM()
+        
+        
+        
+        
+        
+        # Model 8
         inLayer   = Input(shape = (look_back, 18))
         
-        conv1     = Conv1D(32,  5,   name='conv1',  activation = 'relu'  )(inLayer)
-        conv2     = Conv1D(64,  5,   name='conv2',  activation = 'relu'  )(conv1)
-        conv3     = Conv1D(32,  5,   name='conv3',  activation = 'relu'  )(conv2)
-        pool      = MaxPooling1D(pool_size = 3, stride = 1, name = "pool")(conv3)
+        conv1     = Conv1D(64,   5,  name='conv1',  activation = 'relu'  )(inLayer)
+        conv2     = Conv1D(64,   5,  name='conv2',  activation = 'relu'  )(conv1)
+        conv3     = Conv1D(64,  10,  name='conv3',  activation = 'relu'  )(conv2)
+        pool      = MaxPooling1D(pool_size = 5, stride = 1, name = "pool")(conv3)
         
-        lstm      = LSTM(units = 100, name='LSTM')(pool)
+        flat      = Flatten()(pool)
         
-        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(lstm)
+        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(flat)
+        dropout1  = Dropout(0.3)(dense1)
+        dense2    = Dense(500,    name='dense2',    activation = "relu"   )(dropout1)
+        dropout2  = Dropout(0.3)(dense2)
         
-        outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dense1)
-        outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dense1)
-        outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dense1)
-        outClose  = Dense(predLen, name='out_close', activation = "linear" )(dense1)
-        outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dense1)
-        outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dense1)
+        outOpen   = Dense(predLen, name='out_open',  activation = "linear" )(dropout2)
+        outHigh   = Dense(predLen, name='out_high',  activation = "linear" )(dropout2)
+        outLow    = Dense(predLen, name='out_low',   activation = "linear" )(dropout2)
+        outClose  = Dense(predLen, name='out_close', activation = "linear" )(dropout2)
+        outVol    = Dense(predLen, name='out_vol',   activation = "linear" )(dropout2)
+        outCat    = Dense(predLen, name='out_cat',   activation = "sigmoid")(dropout2)
         
         self.lstm_model = Model(inputs=inLayer, outputs=[outOpen, 
                                                           outHigh, 
@@ -738,7 +772,6 @@ class MLmodels:
                                                           outVol,
                                                           outCat])
         self.compileLSTM()
-        
         
         
         print("---LSTM model built---\n")
