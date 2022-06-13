@@ -401,7 +401,7 @@ class MLmodels:
                    loadPrevious = True,
                    predLen = 15,
                    storeTrainingDataInRAM = False,
-                   generateExtraSamples = None):
+                   generateExtraSamples = False):
         
         np.random.seed(randomSeed)
         
@@ -495,9 +495,22 @@ class MLmodels:
         
         
         for itteration in range(fullItterations):
+            # Fuzz the data to make each itteration look like new information
+            if generateExtraSamples:
+                rand1 = np.random.random()
+                rand2 = np.random.random()
+                
+                scale = rand1 / 2 + 0.5
+                trans = (1-scale)*rand2
+            
+            # or otherwise, keep the scalled data the same
+            else:
+                scale = 1
+                trans = 0
             
             tickerCounter = 0
             tickerTotal   = str(len(tickerList))
+            
             
             for ticker in tickerList:
                 tickerCounter += 1
@@ -533,57 +546,43 @@ class MLmodels:
                 #---------------------------------------------------
                 # Train the model, with optional "fuzzing" of finputs to artificially create 
                 # additional training data.
-                
-                if not isinstance(generateExtraSamples, int):
-                    generateExtraSamples = 1
-                    
-                for extraSample in range(max(generateExtraSamples,1)):
-                    if extraSample == 0:
-                        scale = 1
-                        trans = 0
+            
+                trainHist = self.lstm_model.fit(trainX*scale + trans, 
+                                                [trainY[:,:,0]*scale + trans,
+                                                 trainY[:,:,1]*scale + trans,
+                                                 trainY[:,:,2]*scale + trans,
+                                                 trainY[:,:,3]*scale + trans,
+                                                 trainY[:,:,4]*scale + trans,
+                                                 trainYc[:,:,0]], 
+                                                epochs = EpochsPerTicker, 
+                                                verbose = 1, 
+                                                validation_split = 0.125)
+            
+                #--------------------------------------------------
+                # store the training information in memory
+            
+                self.trainingHistory.append( [ticker, itteration, trainHist.history]  )
+                self.trainingTimes.append(   [ticker, itteration, dt.datetime.now()]  )
+            
+            
+                #--------------------------------------------------
+                # store the training information to disk
+                     
+                for i in range(len(trainHist.history["loss"])):
+                    if i == 0:
+                        dataString = ticker + "," + \
+                                     str(itteration + prevItter)+ "," + \
+                                     str(dt.datetime.now()) + ","
                     else:
-                        rand1 = np.random.random()
-                        rand2 = np.random.random()
-                        
-                        scale = rand1 / 2 + 0.5
-                        trans = (1-scale)*rand2
+                        dataString += ",,,"
                     
-                    trainHist = self.lstm_model.fit(trainX*scale + trans, 
-                                                    [trainY[:,:,0]*scale + trans,
-                                                     trainY[:,:,1]*scale + trans,
-                                                     trainY[:,:,2]*scale + trans,
-                                                     trainY[:,:,3]*scale + trans,
-                                                     trainY[:,:,4]*scale + trans,
-                                                     trainYc[:,:,0]], 
-                                                    epochs = EpochsPerTicker, 
-                                                    verbose = 1, 
-                                                    validation_split = 0.125)
-                
-                    #--------------------------------------------------
-                    # store the training information in memory
-                
-                    self.trainingHistory.append( [ticker, itteration, trainHist.history]  )
-                    self.trainingTimes.append(   [ticker, itteration, dt.datetime.now()]  )
-                
-                
-                    #--------------------------------------------------
-                    # store the training information to disk
-                         
-                    for i in range(len(trainHist.history["loss"])):
-                        if i == 0:
-                            dataString = ticker + "," + \
-                                         str(itteration + prevItter)+ "," + \
-                                         str(dt.datetime.now()) + ","
-                        else:
-                            dataString += ",,,"
-                        
-                        
-                        for key in trainHistKeys:
-                            dataString += str(trainHist.history[key][i]) + ","
-                        
-                        dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
-                        
                     
+                    for key in trainHistKeys:
+                        dataString += str(trainHist.history[key][i]) + ","
+                    
+                    dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
+                    
+                
                     dataFile = open(saveString, 'a')
                     dataFile.write(dataString)
                     dataFile.close()
@@ -798,7 +797,7 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        opt = optimizers.Adam(learning_rate=0.0001)
+        opt = optimizers.Adam(learning_rate=0.00001)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
@@ -1483,13 +1482,13 @@ if __name__ == "__main__":
     # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
-                        fullItterations = 50, 
+                        fullItterations = 100, 
                         loadPrevious = False,
                         look_back = 120, 
                         trainSize = 0.9,
                         predLen = 20, 
                         storeTrainingDataInRAM = True,
-                        generateExtraSamples = 100)
+                        generateExtraSamples = True)
     
     
     # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
