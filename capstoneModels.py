@@ -531,12 +531,12 @@ class MLmodels:
                                 scale = rand1 / 2 + 0.5
                                 trans = (1-scale)*rand2
                                 
-                                tempTrainX  = np.append(trainX*scale + trans)
-                                tempTrainY  = np.append(trainY*scale + trans)
-                                tempTrainYc = np.append(trainYc)
-                                tempTestX   = np.append(testX*scale + trans)
-                                tempTestY   = np.append(testY*scale + trans)
-                                tempTestYc  = np.append(testYc)
+                                tempTrainX  = np.append(tempTrainX,  trainX*scale + trans, axis = 0)
+                                tempTrainY  = np.append(tempTrainY,  trainY*scale + trans, axis = 0)
+                                tempTrainYc = np.append(tempTrainYc, trainYc,              axis = 0)
+                                tempTestX   = np.append(tempTestX,   testX*scale + trans,  axis = 0)
+                                tempTestY   = np.append(tempTestY,   testY*scale + trans,  axis = 0)
+                                tempTestYc  = np.append(tempTestYc,  testYc,               axis = 0)
                                 
                             trainX  = tempTrainX
                             trainY  = tempTrainY
