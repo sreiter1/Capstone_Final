@@ -1463,7 +1463,7 @@ if __name__ == "__main__":
                                           minDailyChange = -50, 
                                           minDailyVolume = 500000)
     
-    mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
+    # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
                         fullItterations = 50, 
