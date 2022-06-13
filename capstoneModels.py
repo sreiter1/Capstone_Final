@@ -496,7 +496,7 @@ class MLmodels:
         
         for itteration in range(fullItterations):
             # Fuzz the data to make each itteration look like new information
-            if generateExtraSamples:
+            if generateExtraSamples and itteration != 0:
                 rand1 = np.random.random()
                 rand2 = np.random.random()
                 
