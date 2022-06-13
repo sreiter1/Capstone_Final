@@ -546,7 +546,8 @@ class MLmodels:
                 #---------------------------------------------------
                 # Train the model, with optional "fuzzing" of finputs to artificially create 
                 # additional training data.
-            
+                
+                self.lstm_model.reset_states()
                 trainHist = self.lstm_model.fit(trainX*scale + trans, 
                                                 [trainY[:,:,0]*scale + trans,
                                                  trainY[:,:,1]*scale + trans,
