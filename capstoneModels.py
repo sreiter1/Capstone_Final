@@ -400,7 +400,8 @@ class MLmodels:
                    trainDate = "01-01-2020",
                    loadPrevious = True,
                    predLen = 15,
-                   storeTrainingDataInRAM = False):
+                   storeTrainingDataInRAM = False,
+                   generateExtraSamples = None):
         
         np.random.seed(randomSeed)
         
@@ -513,6 +514,37 @@ class MLmodels:
                                                               trainSize = trainSize, 
                                                               trainDate = trainDate,
                                                               predLen = predLen)
+                        
+                        if isinstance(generateExtraSamples, int):
+                            tempTrainX  = np.copy(trainX)
+                            tempTrainY  = np.copy(trainY)
+                            tempTrainYc = np.copy(trainYc)
+                            tempTestX   = np.copy(testX)
+                            tempTestY   = np.copy(testY)
+                            tempTestYc  = np.copy(testYc)
+                            
+                            for i in range(min(generateExtraSamples,2)):
+                                print("\rGenerating additional samples for ticker " + ticker.rjust(6) = "                    ", end = "")
+                                rand1 = np.random.random()
+                                rand2 = np.random.random()
+                                
+                                scale = rand1 / 2 + 0.5
+                                trans = (1-scale)*rand2
+                                
+                                tempTrainX  = np.append(trainX*scale + trans)
+                                tempTrainY  = np.append(trainY*scale + trans)
+                                tempTrainYc = np.append(trainYc)
+                                tempTestX   = np.append(testX*scale + trans)
+                                tempTestY   = np.append(testY*scale + trans)
+                                tempTestYc  = np.append(testYc)
+                                
+                            trainX  = tempTrainX
+                            trainY  = tempTrainY
+                            trainYc = tempTrainYc
+                            testX   = tempTestX
+                            testY   = tempTestY
+                            testYc  = tempTestYc
+                        
                         
                         if storeTrainingDataInRAM:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
@@ -753,7 +785,7 @@ class MLmodels:
         
         flat      = Flatten()(pool)
         
-        dense1    = Dense(500,    name='dense1',    activation = "relu"   )(flat)
+        dense1    = Dense(1000,   name='dense1',    activation = "relu"   )(flat)
         dropout1  = Dropout(0.3)(dense1)
         dense2    = Dense(500,    name='dense2',    activation = "relu"   )(dropout1)
         dropout2  = Dropout(0.3)(dense2)
@@ -1471,7 +1503,8 @@ if __name__ == "__main__":
                         look_back = 120, 
                         trainSize = 0.9,
                         predLen = 20, 
-                        storeTrainingDataInRAM = True)
+                        storeTrainingDataInRAM = True,
+                        generateExtraSamples = 100)
     
     
     # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
