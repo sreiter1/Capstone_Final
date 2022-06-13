@@ -515,37 +515,6 @@ class MLmodels:
                                                               trainDate = trainDate,
                                                               predLen = predLen)
                         
-                        if isinstance(generateExtraSamples, int):
-                            tempTrainX  = np.copy(trainX)
-                            tempTrainY  = np.copy(trainY)
-                            tempTrainYc = np.copy(trainYc)
-                            tempTestX   = np.copy(testX)
-                            tempTestY   = np.copy(testY)
-                            tempTestYc  = np.copy(testYc)
-                            
-                            for i in range(min(generateExtraSamples,2)):
-                                print("\rGenerating additional samples for ticker " + ticker.rjust(6) + "                    ", end = "")
-                                rand1 = np.random.random()
-                                rand2 = np.random.random()
-                                
-                                scale = rand1 / 2 + 0.5
-                                trans = (1-scale)*rand2
-                                
-                                tempTrainX  = np.append(tempTrainX,  trainX*scale + trans, axis = 0)
-                                tempTrainY  = np.append(tempTrainY,  trainY*scale + trans, axis = 0)
-                                tempTrainYc = np.append(tempTrainYc, trainYc,              axis = 0)
-                                tempTestX   = np.append(tempTestX,   testX*scale + trans,  axis = 0)
-                                tempTestY   = np.append(tempTestY,   testY*scale + trans,  axis = 0)
-                                tempTestYc  = np.append(tempTestYc,  testYc,               axis = 0)
-                                
-                            trainX  = tempTrainX
-                            trainY  = tempTrainY
-                            trainYc = tempTrainYc
-                            testX   = tempTestX
-                            testY   = tempTestY
-                            testYc  = tempTestYc
-                        
-                        
                         if storeTrainingDataInRAM:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
                             self.testingData[ticker]  = (testX,  testY,  testYc)
@@ -562,50 +531,66 @@ class MLmodels:
                 
                 
                 #---------------------------------------------------
-                # Train the model
-                trainHist = self.lstm_model.fit(trainX, 
-                                                [trainY[:,:,0],
-                                                 trainY[:,:,1],
-                                                 trainY[:,:,2],
-                                                 trainY[:,:,3],
-                                                 trainY[:,:,4],
-                                                 trainYc[:,:,0]], 
-                                                epochs = EpochsPerTicker, 
-                                                verbose = 1, 
-                                                validation_split = 0.125)
+                # Train the model, with optional "fuzzing" of finputs to artificially create 
+                # additional training data.
                 
-                #--------------------------------------------------
-                # store the training information in memory
-                
-                self.trainingHistory.append( [ticker, itteration, trainHist.history]  )
-                self.trainingTimes.append(   [ticker, itteration, dt.datetime.now()]  )
-                
-                
-                #--------------------------------------------------
-                # store the training information to disk
-                     
-                for i in range(len(trainHist.history["loss"])):
-                    if i == 0:
-                        dataString = ticker + "," + \
-                                     str(itteration + prevItter)+ "," + \
-                                     str(dt.datetime.now()) + ","
+                if not isinstance(generateExtraSamples, int):
+                    generateExtraSamples = 1
+                    
+                for extraSample in range(max(generateExtraSamples,1)):
+                    if extraSample == 0:
+                        scale = 1
+                        trans = 0
                     else:
-                        dataString += ",,,"
+                        rand1 = np.random.random()
+                        rand2 = np.random.random()
+                        
+                        scale = rand1 / 2 + 0.5
+                        trans = (1-scale)*rand2
                     
-                    
-                    for key in trainHistKeys:
-                        dataString += str(trainHist.history[key][i]) + ","
-                    
-                    dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
-                    
+                    trainHist = self.lstm_model.fit(trainX*scale + trans, 
+                                                    [trainY[:,:,0]*scale + trans,
+                                                     trainY[:,:,1]*scale + trans,
+                                                     trainY[:,:,2]*scale + trans,
+                                                     trainY[:,:,3]*scale + trans,
+                                                     trainY[:,:,4]*scale + trans,
+                                                     trainYc[:,:,0]], 
+                                                    epochs = EpochsPerTicker, 
+                                                    verbose = 1, 
+                                                    validation_split = 0.125)
                 
-                dataFile = open(saveString, 'a')
-                dataFile.write(dataString)
-                dataFile.close()
+                    #--------------------------------------------------
+                    # store the training information in memory
+                
+                    self.trainingHistory.append( [ticker, itteration, trainHist.history]  )
+                    self.trainingTimes.append(   [ticker, itteration, dt.datetime.now()]  )
+                
+                
+                    #--------------------------------------------------
+                    # store the training information to disk
+                         
+                    for i in range(len(trainHist.history["loss"])):
+                        if i == 0:
+                            dataString = ticker + "," + \
+                                         str(itteration + prevItter)+ "," + \
+                                         str(dt.datetime.now()) + ","
+                        else:
+                            dataString += ",,,"
+                        
+                        
+                        for key in trainHistKeys:
+                            dataString += str(trainHist.history[key][i]) + ","
+                        
+                        dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
+                        
+                    
+                    dataFile = open(saveString, 'a')
+                    dataFile.write(dataString)
+                    dataFile.close()
                 
             
             #--------------------------------------------------
-            # Save and evalueate the model
+            # Save and evaluate the model
             
             saveString = folderName + "lstm_model_" + str(itteration + 1 + prevItter).zfill(3) + ".h5"
             self.lstm_model.save(saveString)
