@@ -496,6 +496,8 @@ class MLmodels:
         
         
         for itteration in range(fullItterations):
+            self.itterations = itteration
+            
             # Fuzz the data to make each itteration look like new information
             if generateExtraSamples and itteration != 0:
                 rand1 = np.random.random()
@@ -799,15 +801,16 @@ class MLmodels:
         print("---LSTM model built---\n")
         self.lstm_model.summary()
         
-        
-        
+    
+    
+    def learningRateScheduler(self):
+        lr = 0.01 * 0.75 ** (self.itterations)
+        return lr
+    
+    
         
     def compileLSTM(self):
-        lr_schedule = optimizers.schExponentialDecay(initial_learning_rate=1e-2,
-                                       decay_steps=100000,
-                                       decay_rate=0.9)
-        
-        opt = optimizers.Adam(learning_rate = lr_schedule)
+        opt = optimizers.SGD(learning_rate = self.learningRateScheduler)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
