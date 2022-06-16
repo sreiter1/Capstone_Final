@@ -36,7 +36,7 @@ from keras.layers import Flatten
 from keras.layers import concatenate
 from keras import metrics
 from keras import optimizers
-from keras.optimizers.schedules import ExponentialDecay
+from optimizers.schedules import ExponentialDecay
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
