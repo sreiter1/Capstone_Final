@@ -73,6 +73,7 @@ class MLmodels:
         self._data = pd.DataFrame()
         self.tradingDateSet = []  # List of dates in YYYY-MM-DD format that are trading dates in the database
         self.splitDate = pd.to_datetime(splitDate)
+        self.itterations = 0
         
         self.validate = commonUtilities.validationFunctions()
         
