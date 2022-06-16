@@ -33,8 +33,10 @@ from keras.layers import Conv1D
 from keras.layers import TimeDistributed
 from keras.layers import AveragePooling1D, MaxPooling1D 
 from keras.layers import Flatten
+from keras.layers import concatenate
 from keras import metrics
 from keras import optimizers
+from keras.optimizers.schedules import ExponentialDecay
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
@@ -770,7 +772,11 @@ class MLmodels:
         
         flat      = Flatten()(pool)
         
-        dense1    = Dense(1000,   name='dense1',    activation = "relu"   )(flat)
+        lstm      = LSTM(look_back,  name='LSTM',    activation = "sigmoid")(inLayer)
+        
+        combine   = concatenate([lstm, flat], axis = -1)
+        
+        dense1    = Dense(1000,   name='dense1',    activation = "relu"   )(combine)
         dropout1  = Dropout(0.3)(dense1)
         dense2    = Dense(500,    name='dense2',    activation = "relu"   )(dropout1)
         dropout2  = Dropout(0.3)(dense2)
@@ -798,7 +804,12 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        opt = optimizers.Adam(learning_rate=0.00001)
+        
+        lr_schedule = ExponentialDecay(initial_learning_rate=1e-2,
+                                       decay_steps=100000,
+                                       decay_rate=0.9)
+        
+        opt = optimizers.Adam(learning_rate = lr_schedule)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
