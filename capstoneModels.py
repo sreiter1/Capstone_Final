@@ -36,7 +36,6 @@ from keras.layers import Flatten
 from keras.layers import concatenate
 from keras import metrics
 from keras import optimizers
-from optimizers.schedules import ExponentialDecay
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
@@ -804,8 +803,7 @@ class MLmodels:
         
         
     def compileLSTM(self):
-        
-        lr_schedule = ExponentialDecay(initial_learning_rate=1e-2,
+        lr_schedule = optimizers.schExponentialDecay(initial_learning_rate=1e-2,
                                        decay_steps=100000,
                                        decay_rate=0.9)
         
