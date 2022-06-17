@@ -479,8 +479,8 @@ class MLmodels:
             
             
         try:
-            f_train = open(folderName + "training.pickle", "r")
-            f_test  = open(folderName + "testing.pickle",  "r")
+            f_train = open(folderName + "training.pickle", "rb")
+            f_test  = open(folderName + "testing.pickle",  "rb")
             
             self.trainingData = pickle.load(f_train)
             self.testingData  = pickle.load(f_test)
@@ -561,8 +561,8 @@ class MLmodels:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
                             self.testingData[ticker]  = (testX,  testY,  testYc)
                             
-                            f_train = open(folderName + "training.pickle", "w")
-                            f_test  = open(folderName + "testing.pickle",  "w")
+                            f_train = open(folderName + "training.pickle", "wb")
+                            f_test  = open(folderName + "testing.pickle",  "wb")
                             
                             pickle.dump(self.trainingData, f_train)
                             pickle.dump(self.testingData,  f_test)
