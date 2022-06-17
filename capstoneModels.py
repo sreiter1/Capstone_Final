@@ -479,8 +479,14 @@ class MLmodels:
             
             
         try:
-            self.trainingData = pickle.load(folderName + "training.pickle")
-            self.testingData  = pickle.load(folderName + "testing.pickle")
+            f_train = open(folderName + "training.pickle", "r")
+            f_test  = open(folderName + "testing.pickle",  "r")
+            
+            self.trainingData = pickle.load(f_train)
+            self.testingData  = pickle.load(f_test)
+            
+            f_train.close()
+            f_test.close()
         except:
             pass
         
@@ -555,8 +561,14 @@ class MLmodels:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
                             self.testingData[ticker]  = (testX,  testY,  testYc)
                             
-                            pickle.dump(self.trainingData, folderName + "training.pickle")
-                            pickle.dump(self.testingData,  folderName + "testing.pickle")
+                            f_train = open(folderName + "training.pickle", "w")
+                            f_test  = open(folderName + "testing.pickle",  "w")
+                            
+                            pickle.dump(self.trainingData, f_train)
+                            pickle.dump(self.testingData,  f_test)
+                            
+                            f_train.close()
+                            f_test.close()
                         
                     except (noPriceData):
                         print("\nNo Data associated with ticker '" + ticker + "'.")
