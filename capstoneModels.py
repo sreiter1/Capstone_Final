@@ -60,7 +60,19 @@ class noPriceData(Exception):
     pass
 
 
+
+
+class lrScheduler:
+    def __init__(self, initRate, initItter, scale = 0.9):
+        self.initRate = initRate
+        self.lrIitterations = initItter
+        self.scale = scale
     
+    def lrVal(self):
+        lr = self.initRate * self.scale ** max(self.lrIitterations - 10, 0)
+        return lr
+
+
     
 
 class MLmodels:
@@ -73,7 +85,7 @@ class MLmodels:
         self._data = pd.DataFrame()
         self.tradingDateSet = []  # List of dates in YYYY-MM-DD format that are trading dates in the database
         self.splitDate = pd.to_datetime(splitDate)
-        self.itterations = 0
+        self.lrIitterations = lrScheduler(0.01, 0)
         
         self.validate = commonUtilities.validationFunctions()
         
@@ -465,8 +477,14 @@ class MLmodels:
             dataFile.write("learning_rate\n")    
             dataFile.close()
             
+            
+        try:
+            self.trainingData = pickle.load(folderName + "training.pickle")
+            self.testingData  = pickle.load(folderName + "testing.pickle")
+        except:
+            pass
         
-        
+            
         if tickerList == []:
             tickerList = self.analysis._tickerList
             
@@ -497,7 +515,7 @@ class MLmodels:
         
         
         for itteration in range(fullItterations):
-            self.itterations = itteration
+            setattr(self.lrIitterations, 'self.itteration', itteration + prevItter)
             
             tickerCounter = 0
             tickerTotal   = str(len(tickerList))
@@ -536,6 +554,9 @@ class MLmodels:
                         if storeTrainingDataInRAM:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
                             self.testingData[ticker]  = (testX,  testY,  testYc)
+                            
+                            pickle.dump(self.trainingData, folderName + "training.pickle")
+                            pickle.dump(self.testingData,  folderName + "testing.pickle")
                         
                     except (noPriceData):
                         print("\nNo Data associated with ticker '" + ticker + "'.")
@@ -802,17 +823,11 @@ class MLmodels:
         
         print("---LSTM model built---\n")
         self.lstm_model.summary()
-        
     
     
-    def learningRateScheduler(self):
-        lr = 0.01 * 0.75 ** (self.itterations)
-        return lr
     
-    
-        
     def compileLSTM(self):
-        opt = optimizers.SGD(learning_rate = self.learningRateScheduler)
+        opt = optimizers.SGD(learning_rate = self.lrIitterations.lrVal)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
@@ -1498,7 +1513,7 @@ if __name__ == "__main__":
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
                         fullItterations = 100, 
-                        loadPrevious = False,
+                        loadPrevious = True,
                         look_back = 120, 
                         trainSize = 0.9,
                         predLen = 20, 
