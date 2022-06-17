@@ -499,25 +499,26 @@ class MLmodels:
         for itteration in range(fullItterations):
             self.itterations = itteration
             
-            # Fuzz the data to make each itteration look like new information
-            if generateExtraSamples and itteration != 0:
-                rand1 = np.random.random()
-                rand2 = np.random.random()
-                
-                scale = rand1 / 2 + 0.5
-                trans = (1-scale)*rand2
-            
-            # or otherwise, keep the scalled data the same
-            else:
-                scale = 1
-                trans = 0
-            
             tickerCounter = 0
             tickerTotal   = str(len(tickerList))
             
             
             for ticker in tickerList:
                 tickerCounter += 1
+                
+                # Fuzz the data to make each itteration look like new information
+                if generateExtraSamples and itteration != 0:
+                    rand1 = np.random.random()
+                    rand2 = np.random.random()
+                    
+                    scale = rand1 / 2 + 0.5
+                    trans = (1-scale)*rand2
+                
+                # or otherwise, keep the scalled data the same
+                else:
+                    scale = 1
+                    trans = 0
+                    
                 
                 if ticker in self.trainingData.keys():
                     trainX, trainY, trainYc = self.trainingData[ticker]
