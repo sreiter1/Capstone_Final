@@ -1521,7 +1521,7 @@ if __name__ == "__main__":
     mod.analysis.filterStocksFromDataBase(dailyLength = 1250, 
                                           maxDailyChange = 50, 
                                           minDailyChange = -50, 
-                                          minDailyVolume = 500000)
+                                          minDailyVolume = 5000000)
     
     # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-17 14.30.20\\lstm_model_010.h5")
     
