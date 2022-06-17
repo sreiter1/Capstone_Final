@@ -596,7 +596,6 @@ class MLmodels:
                 # store the training information to disk
                      
                 for i in range(len(trainHist.history["loss"])):
-                    print(i)
                     if i == 0:
                         dataString = ticker + "," + \
                                      str(itteration + prevItter)+ "," + \
@@ -611,7 +610,6 @@ class MLmodels:
                     dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
                     
                 
-                print(dataString)
                 dataFile = open(histSaveString, 'a')
                 dataFile.write(dataString)
                 dataFile.close()
@@ -1522,7 +1520,7 @@ if __name__ == "__main__":
     mod.analysis.filterStocksFromDataBase(dailyLength = 1250, 
                                           maxDailyChange = 50, 
                                           minDailyChange = -50, 
-                                          minDailyVolume = 5000000)
+                                          minDailyVolume = 500000)
     
     # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-17 14.30.20\\lstm_model_010.h5")
     
