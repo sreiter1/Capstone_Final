@@ -69,7 +69,7 @@ class lrScheduler:
         self.scale = scale
     
     def lrVal(self):
-        lr = self.initRate * self.scale ** max(self.lrIitterations - 10, 0)
+        lr = self.initRate * self.scale ** max(self.lrIitterations - 12, 0)
         return lr
 
 
