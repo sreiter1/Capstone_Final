@@ -63,13 +63,13 @@ class noPriceData(Exception):
 
 
 class lrScheduler:
-    def __init__(self, initRate, initItter, scale = 0.9):
+    def __init__(self, initRate, initItter, scale = 0.8):
         self.initRate = initRate
         self.lrIitterations = initItter
         self.scale = scale
     
     def lrVal(self):
-        lr = self.initRate * self.scale ** max(self.lrIitterations - 10, 0)
+        lr = self.initRate * self.scale ** max(self.lrIitterations, 0)
         return lr
 
 
@@ -596,6 +596,7 @@ class MLmodels:
                 # store the training information to disk
                      
                 for i in range(len(trainHist.history["loss"])):
+                    print(i)
                     if i == 0:
                         dataString = ticker + "," + \
                                      str(itteration + prevItter)+ "," + \
