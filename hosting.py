@@ -6,8 +6,8 @@ from flask import flash
 from flask import request
 from flask import redirect
 from flask import url_for
-
 from flask_wtf import FlaskForm, Form
+
 import capstoneModels
 
 from wtforms import StringField
@@ -19,6 +19,7 @@ from wtforms import widgets
 
 from wtforms.validators import InputRequired
 import os
+import sys
 import datetime as dt
 import pandas as pd
 
@@ -64,7 +65,11 @@ extraList = [("00",  'OPEN'),
 class flaskFunctions:
     def __init__(self, mod):
         self.mod = mod
-        self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
+        if "win" in sys.platform:
+            self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
+        elif "linux" in sys.platform:
+            self.folderSeparator = "/" 
+        self.mod.LSTM_load(modelToLoad="./static/LSTMmodels/2022-06-12 13.20.07/lstm_model_010.h5")
     
     # Create A Search Form
     class SearchForm(FlaskForm):
@@ -580,8 +585,11 @@ def query():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
-    
+    if "win" in sys.platform:
+        app.run(debug=True)
+    elif "linux" in sys.platform:
+        from waitress import serve
+        serve(app)
     
     
     
