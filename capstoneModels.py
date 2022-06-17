@@ -69,7 +69,7 @@ class lrScheduler:
         self.scale = scale
     
     def lrVal(self):
-        lr = self.initRate * self.scale ** max(self.lrIitterations - 12, 0)
+        lr = self.initRate * self.scale ** max(self.lrIitterations - 10, 0)
         return lr
 
 
@@ -490,6 +490,8 @@ class MLmodels:
         except:
             pass
         
+        saveTestTrainToDisk = False
+        
             
         if tickerList == []:
             tickerList = self.analysis._tickerList
@@ -561,14 +563,7 @@ class MLmodels:
                             self.trainingData[ticker] = (trainX, trainY, trainYc)
                             self.testingData[ticker]  = (testX,  testY,  testYc)
                             
-                            f_train = open(folderName + "training.pickle", "wb")
-                            f_test  = open(folderName + "testing.pickle",  "wb")
-                            
-                            pickle.dump(self.trainingData, f_train)
-                            pickle.dump(self.testingData,  f_test)
-                            
-                            f_train.close()
-                            f_test.close()
+                            saveTestTrainToDisk = True
                         
                     except (noPriceData):
                         print("\nNo Data associated with ticker '" + ticker + "'.")
@@ -598,13 +593,6 @@ class MLmodels:
                                                 validation_split = 0.125)
             
                 #--------------------------------------------------
-                # store the training information in memory
-            
-                self.trainingHistory.append( [ticker, itteration, trainHist.history]  )
-                self.trainingTimes.append(   [ticker, itteration, dt.datetime.now()]  )
-            
-            
-                #--------------------------------------------------
                 # store the training information to disk
                      
                 for i in range(len(trainHist.history["loss"])):
@@ -622,10 +610,23 @@ class MLmodels:
                     dataString += str(self.lstm_model.optimizer.lr.value).split("numpy=")[1].split(">>")[0] + "\n"
                     
                 
-                    dataFile = open(saveString, 'a')
-                    dataFile.write(dataString)
-                    dataFile.close()
+                dataFile = open(saveString, 'a')
+                dataFile.write(dataString)
+                dataFile.close()
+            
+            
+            if saveTestTrainToDisk:
+                f_train = open(folderName + "training.pickle", "wb")
+                f_test  = open(folderName + "testing.pickle",  "wb")
                 
+                pickle.dump(self.trainingData, f_train)
+                pickle.dump(self.testingData,  f_test)
+                
+                f_train.close()
+                f_test.close()
+            
+            
+            saveTestTrainToDisk = False
             
             #--------------------------------------------------
             # Save and evaluate the model
