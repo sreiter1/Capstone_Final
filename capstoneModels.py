@@ -443,7 +443,7 @@ class MLmodels:
         if loadPrevious:
             trainHist, look_back, predLen = self.LSTM_load()
             prevItter = int(self.modelToLoad.split("_")[-1].split(".")[0])
-            saveString = self.prevTrainingData
+            histSaveString = self.prevTrainingData
             folderName = self.folderSeparator.join(self.prevTrainingData.split(self.folderSeparator)[:-1]) + self.folderSeparator
             
         else:
@@ -453,8 +453,8 @@ class MLmodels:
             folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)) + self.folderSeparator
             folderName = folderName.replace(":", ".")
             os.makedirs(folderName)
-            saveString = folderName + "training_data.csv"
-            dataFile = open(saveString, 'w')
+            histSaveString = folderName + "training_data.csv"
+            dataFile = open(histSaveString, 'w')
             dataFile.write("Saved Metrics:\n"
                            "Look Back = " + str(look_back) + "\n"
                            "Prediction Length = " + str(predLen) + "\n"
@@ -612,7 +612,7 @@ class MLmodels:
                     
                 
                 print(dataString)
-                dataFile = open(saveString, 'a')
+                dataFile = open(histSaveString, 'a')
                 dataFile.write(dataString)
                 dataFile.close()
             
@@ -626,15 +626,15 @@ class MLmodels:
                 
                 f_train.close()
                 f_test.close()
+                
+                saveTestTrainToDisk = False
             
-            
-            saveTestTrainToDisk = False
             
             #--------------------------------------------------
             # Save and evaluate the model
             
-            saveString = folderName + "lstm_model_" + str(itteration + 1 + prevItter).zfill(3) + ".h5"
-            self.lstm_model.save(saveString)
+            LSTMsaveString = folderName + "lstm_model_" + str(itteration + 1 + prevItter).zfill(3) + ".h5"
+            self.lstm_model.save(LSTMsaveString)
         
         dataFile.close()
         return 
