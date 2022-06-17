@@ -1527,7 +1527,7 @@ if __name__ == "__main__":
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
                         fullItterations = 100, 
-                        loadPrevious = True,
+                        loadPrevious = False,
                         look_back = 120, 
                         trainSize = 0.9,
                         predLen = 20, 
