@@ -451,6 +451,7 @@ class MLmodels:
                                    predLen = predLen)
             prevItter = 0
             folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)) + self.folderSeparator
+            copyFolder = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + "2022-06-17 16.10.01" + self.folderSeparator
             folderName = folderName.replace(":", ".")
             os.makedirs(folderName)
             histSaveString = folderName + "training_data.csv"
@@ -479,18 +480,18 @@ class MLmodels:
             
             
         try:
-            f_train = open(folderName + "training.pickle", "rb")
-            f_test  = open(folderName + "testing.pickle",  "rb")
+            f_train = open(copyFolder + "training.pickle", "rb")
+            f_test  = open(copyFolder + "testing.pickle",  "rb")
             
             self.trainingData = pickle.load(f_train)
             self.testingData  = pickle.load(f_test)
             
             f_train.close()
             f_test.close()
+            
+            saveTestTrainToDisk = True
         except:
-            pass
-        
-        saveTestTrainToDisk = False
+            saveTestTrainToDisk = False
         
             
         if tickerList == []:
