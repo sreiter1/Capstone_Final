@@ -63,7 +63,7 @@ class noPriceData(Exception):
 
 
 class lrScheduler:
-    def __init__(self, initRate, initItter, scale = 0.8):
+    def __init__(self, initRate, initItter, scale = 0.9):
         self.initRate = initRate
         self.lrIitterations = initItter
         self.scale = scale
@@ -85,7 +85,7 @@ class MLmodels:
         self._data = pd.DataFrame()
         self.tradingDateSet = []  # List of dates in YYYY-MM-DD format that are trading dates in the database
         self.splitDate = pd.to_datetime(splitDate)
-        self.lrIitterations = lrScheduler(0.01, 0)
+        self.lrSched = lrScheduler(0.001, 0)
         
         self.validate = commonUtilities.validationFunctions()
         
@@ -523,7 +523,7 @@ class MLmodels:
         
         
         for itteration in range(fullItterations):
-            setattr(self.lrIitterations, 'self.itteration', itteration + prevItter)
+            setattr(self.lrSched, 'lrIitterations', itteration + prevItter)
             
             tickerCounter = 0
             tickerTotal   = str(len(tickerList))
@@ -533,7 +533,7 @@ class MLmodels:
                 tickerCounter += 1
                 
                 # Fuzz the data to make each itteration look like new information
-                if generateExtraSamples and itteration != 0:
+                if generateExtraSamples and (itteration + prevItter) != 0:
                     rand1 = np.random.random()
                     rand2 = np.random.random()
                     
@@ -840,7 +840,7 @@ class MLmodels:
     
     
     def compileLSTM(self):
-        opt = optimizers.SGD(learning_rate = self.lrIitterations.lrVal)
+        opt = optimizers.SGD(learning_rate = self.lrSched.lrVal)
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
