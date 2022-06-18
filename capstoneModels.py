@@ -492,7 +492,7 @@ class MLmodels:
             saveTestTrainToDisk = True
         except:
             saveTestTrainToDisk = False
-        
+         
             
         if tickerList == []:
             tickerList = self.analysis._tickerList
