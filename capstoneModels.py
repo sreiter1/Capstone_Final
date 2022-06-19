@@ -492,7 +492,7 @@ class MLmodels:
                 self.trainingData = pickle.load(f_train)
                 
             with open(folderName + "testing.pickle", "rb")  as f_test:
-                self.trainingData = pickle.load(f_test)
+                self.testingData = pickle.load(f_test)
             
             saveTestTrainToDisk = False
             
