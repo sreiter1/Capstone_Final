@@ -625,15 +625,12 @@ class MLmodels:
             
             
             if saveTestTrainToDisk:
-                f_train = open(folderName + "training.pickle", "wb")
-                f_test  = open(folderName + "testing.pickle",  "wb")
-                
-                pickle.dump(self.trainingData, f_train)
-                pickle.dump(self.testingData,  f_test)
-                
-                f_train.close()
-                f_test.close()
-                
+                with open(folderName + "training.pickle", "rb")  as f_train:
+                    pickle.dump(self.trainingData, f_train)
+                    
+                with open(folderName + "testing.pickle", "rb")   as f_test:
+                    pickle.dump(self.testingData,  f_test)
+                    
                 saveTestTrainToDisk = False
             
             
