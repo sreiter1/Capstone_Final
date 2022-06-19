@@ -15,7 +15,6 @@ import IndicatorsAndFilters
 import StockData
 import pickle
 import sys
-import shutil
 
 import datetime as dt
 import os
@@ -478,15 +477,13 @@ class MLmodels:
             dataFile.write("learning_rate\n")    
             dataFile.close()
             
-            
-            
         
         try:
-            shutil.copyfile("." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator +"training.pickle", folderName)
-            shutil.copyfile("." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator +"testing.pickle", folderName)
-            
+            cpString = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator
+            os.popen("cp " + cpString + "training.pickle " + folderName)
+            os.popen("cp " + cpString + "testing.pickle " + folderName)
         except:
-            pass
+            print("\nCould not copy training and testing data.\n")
         
         try:
             f_train = open(folderName + "training.pickle", "rb")
@@ -597,6 +594,7 @@ class MLmodels:
                                                  trainY[:,:,4]*scale + trans,
                                                  trainYc[:,:,0]], 
                                                 epochs = EpochsPerTicker, 
+                                                shuffle = False,
                                                 verbose = 1, 
                                                 validation_split = 0.125)
             
