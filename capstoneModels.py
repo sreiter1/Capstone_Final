@@ -450,7 +450,7 @@ class MLmodels:
             self.createLSTMNetwork(look_back = look_back,
                                    predLen = predLen)
             prevItter = 0
-            folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)) + self.folderSeparator
+            folderName = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator + str(startTime.replace(microsecond=0)).replace(" ","_")  + self.folderSeparator
             folderName = folderName.replace(":", ".")
             os.makedirs(folderName)
             histSaveString = folderName + "training_data.csv"
