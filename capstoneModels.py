@@ -479,6 +479,7 @@ class MLmodels:
             
         
         try:
+            print("Copying training and testing data...")
             cpString = "." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator
             os.popen("cp " + cpString + "training.pickle " + folderName)
             os.popen("cp " + cpString + "testing.pickle " + folderName)
@@ -486,14 +487,15 @@ class MLmodels:
             print("\nCould not copy training and testing data.\n")
         
         try:
-            f_train = open(folderName + "training.pickle", "rb")
-            f_test  = open(folderName + "testing.pickle",  "rb")
+            print("Loading training and testing data...")
+            with open(folderName + "training.pickle", "rb") as f_train:
+                self.trainingData = pickle.load(f_train)
+                
+            with open(folderName + "testing.pickle", "rb")  as f_test:
+                self.trainingData = pickle.load(f_test)
             
-            self.trainingData = pickle.load(f_train)
-            self.testingData  = pickle.load(f_test)
+            saveTestTrainToDisk = False
             
-            f_train.close()
-            f_test.close()
         except:
             print("\nCould not load training and testing data.\n")
             saveTestTrainToDisk = False
