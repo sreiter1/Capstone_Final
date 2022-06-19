@@ -15,6 +15,7 @@ import IndicatorsAndFilters
 import StockData
 import pickle
 import sys
+import shutil
 
 import datetime as dt
 import os
@@ -85,7 +86,7 @@ class MLmodels:
         self._data = pd.DataFrame()
         self.tradingDateSet = []  # List of dates in YYYY-MM-DD format that are trading dates in the database
         self.splitDate = pd.to_datetime(splitDate)
-        self.lrSched = lrScheduler(0.001, 0)
+        self.lrSched = lrScheduler(0.01, 0)
         
         self.validate = commonUtilities.validationFunctions()
         
@@ -478,6 +479,15 @@ class MLmodels:
             dataFile.close()
             
             
+            
+        
+        try:
+            shutil.copyfile("." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator +"training.pickle", folderName)
+            shutil.copyfile("." + self.folderSeparator + "static" + self.folderSeparator + "LSTMmodels" + self.folderSeparator +"testing.pickle", folderName)
+            
+        except:
+            pass
+        
         try:
             f_train = open(folderName + "training.pickle", "rb")
             f_test  = open(folderName + "testing.pickle",  "rb")
@@ -838,7 +848,7 @@ class MLmodels:
     
     
     def compileLSTM(self):
-        opt = optimizers.SGD(learning_rate = self.lrSched.lrVal)
+        opt = optimizers.SGD(learning_rate = self.lrSched.lrVal())
         self.lstm_model.compile(optimizer = opt,
                                 loss = {"out_open"  : "mean_squared_error", 
                                         "out_high"  : "mean_squared_error",
@@ -1523,13 +1533,26 @@ if __name__ == "__main__":
     # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-17 14.30.20\\lstm_model_010.h5")
     
     x = mod.LSTM_train(EpochsPerTicker = 1, 
-                        fullItterations = 100, 
+                        fullItterations = 25, 
                         loadPrevious = False,
                         look_back = 120, 
                         trainSize = 0.9,
                         predLen = 20, 
                         storeTrainingDataInRAM = True,
                         generateExtraSamples = True)
+    
+    setattr(mod.lrSched, 'initRate', 0.001)
+    
+    x = mod.LSTM_train(EpochsPerTicker = 1, 
+                        fullItterations = 100, 
+                        loadPrevious = True,
+                        look_back = 120, 
+                        trainSize = 0.9,
+                        predLen = 20, 
+                        storeTrainingDataInRAM = True,
+                        generateExtraSamples = True)
+    
+    
     
     
     # data = mod.getLSTMTestTrainData(ticker    = "AMZN",
