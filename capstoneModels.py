@@ -495,6 +495,7 @@ class MLmodels:
             f_train.close()
             f_test.close()
         except:
+            print("\nCould not load training and testing data.\n")
             saveTestTrainToDisk = False
         
             
