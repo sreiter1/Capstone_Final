@@ -66,10 +66,10 @@ class flaskFunctions:
     def __init__(self, mod):
         self.mod = mod
         if "win" in sys.platform:
-            self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-12 13.20.07\\lstm_model_010.h5")
+            self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-17 14.30.20\\lstm_model_010.h5")
         elif "linux" in sys.platform:
             self.folderSeparator = "/" 
-        self.mod.LSTM_load(modelToLoad="./static/LSTMmodels/2022-06-17 00.11.34/lstm_model_025.h5")
+            self.mod.LSTM_load(modelToLoad="./static/LSTMmodels/2022-06-19_03.35.35/lstm_model_119.h5")
     
     # Create A Search Form
     class SearchForm(FlaskForm):
