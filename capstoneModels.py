@@ -59,6 +59,9 @@ if gpus:
     print(e)
 
 
+import keras.backend.tensorflow_backend as tb
+tb._SYMBOLIC_SCOPE.value = True
+
 
 warnings.filterwarnings('ignore')
 
