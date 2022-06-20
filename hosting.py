@@ -222,16 +222,16 @@ class flaskFunctions:
             searchString = form.symbol.data
             timestampstr = str(dt.datetime.now()).replace(":", "").replace(" ","").replace("-","").replace(".","")
             
-            prediction, evaluation = self.mod.LSTM_eval(ticker     = searchString.upper(), 
-                                                        evaluate   = False, 
-                                                        predict    = True,
-                                                        savePlt    = True, 
-                                                        plotWindow = 600,
-                                                        predLen    = 20,
-                                                        look_back  = 120,
-                                                        stepsPerPred    = 5,
-                                                        extendedPredict = 100,
-                                                        timestampstr    = timestampstr)
+            prediction, evaluation = mod.LSTM_eval(ticker = searchString.upper(),
+                                                   savePlt  = True, 
+                                                   evaluate = False, 
+                                                   predict  = True,
+                                                   plotWindow = 600,
+                                                   timestampstr = timestampstr,
+                                                   predLen = 20,
+                                                   extendedPredict = 100,
+                                                   look_back = 120,
+                                                   stepsPerPred = 10)
             
             stringVar = ""
             stringVar += "\n<br>\n<img src=\"static\LSTM_1_" + timestampstr + ".png\" width=\"700\">"
@@ -586,11 +586,14 @@ def query():
 
 
 if __name__ == '__main__':
-    if "win" in sys.platform:
-        app.run(debug=True)
-    elif "linux" in sys.platform:
-        from waitress import serve
-        serve(app, host='0.0.0.0', port=8080)
+    
+    app.run(debug=True)
+        
+    # if "win" in sys.platform:
+    #     app.run(debug=True)
+    # elif "linux" in sys.platform:
+    #     from waitress import serve
+    #     serve(app, host='0.0.0.0', port=8080)
     
     
     
