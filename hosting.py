@@ -65,6 +65,19 @@ extraList = [("00",  'OPEN'),
 class flaskFunctions:
     def __init__(self, mod):
         self.mod = mod
+        
+        prediction, pred = mod.LSTM_eval(ticker = "A",
+                      savePlt  = True, 
+                      evaluate = False, 
+                      predict  = True,
+                      plotWindow = 600,
+                      timestampstr = "asdf",
+                      predLen = 20,
+                      extendedPredict = 50,
+                      look_back = 120,
+                      stepsPerPred = 10)
+        
+        
         if "win" in sys.platform:
             self.mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-19_03.35.35\\lstm_model_119.h5")
         elif "linux" in sys.platform:

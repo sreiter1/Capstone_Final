@@ -191,7 +191,7 @@ class MLmodels:
                   timestampstr = "",
                   predLen = 20,
                   extendedPredict = 0,
-                  stepsPerPred = 2,
+                  stepsPerPred = 10,
                   look_back = 120,
                   trainDate = "01-01-2020"):
         
@@ -1592,7 +1592,7 @@ if __name__ == "__main__":
                   predLen = 20,
                   extendedPredict = 50,
                   look_back = 120,
-                  stepsPerPred = 2)
+                  stepsPerPred = 10)
     
     
     
