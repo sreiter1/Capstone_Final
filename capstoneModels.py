@@ -23,19 +23,19 @@ import time
 
 import math
 import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
-from tensorflow.keras.layers import Input
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Conv1D
-from tensorflow.keras.layers import TimeDistributed
-from tensorflow.keras.layers import AveragePooling1D, MaxPooling1D 
-from tensorflow.keras.layers import Flatten
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras import metrics
-from tensorflow.keras import optimizers
+from keras.models import load_model
+from keras.models import Model
+from keras.layers import Dense
+from keras.layers import LSTM
+from keras.layers import Input
+from keras.layers import Dropout
+from keras.layers import Conv1D
+from keras.layers import TimeDistributed
+from keras.layers import AveragePooling1D, MaxPooling1D 
+from keras.layers import Flatten
+from keras.layers import concatenate
+from keras import metrics
+from keras import optimizers
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 
