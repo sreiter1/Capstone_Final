@@ -227,8 +227,9 @@ class flaskFunctions:
                                                         predict    = True,
                                                         savePlt    = True, 
                                                         plotWindow = 600,
-                                                        predLen    = 15,
+                                                        predLen    = 20,
                                                         look_back  = 120,
+                                                        stepsPerPred    = 5,
                                                         extendedPredict = 100,
                                                         timestampstr    = timestampstr)
             
