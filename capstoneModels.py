@@ -189,10 +189,13 @@ class MLmodels:
                   predict  = True,
                   plotWindow = 600,
                   timestampstr = "",
-                  predLen = 15,
+                  predLen = 20,
                   extendedPredict = 0,
+                  stepsPerPred = 2,
                   look_back = 120,
                   trainDate = "01-01-2020"):
+        
+        stepsPerPred = min(2, max(stepsPerPred, predLen))
         
         assert hasattr(self, "lstm_model"), "LSTM Model missing.  Train a new model with LSTM_train() or load a model with LSTM_load()."        
         
@@ -231,20 +234,20 @@ class MLmodels:
         
             
         if predict:
+            self.lstm_model.reset_states()
             inputFrame, recordsReturned = self.getLSTMPredictData(look_back = look_back,
                                                                   ticker = ticker, 
                                                                   predLen = predLen)
             
             X, minMaxPrice, minMaxVol = self.scaleLSTMPred(inputFrame, look_back)
             pred = self.lstm_model.predict(X)
-            prediction = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol, predLen)
-            
+            prediction = self.extendPredictData(inputFrame, pred, minMaxPrice, minMaxVol, predLen, stepsPerPred = stepsPerPred)
             
             while extendedPredict > len(prediction["open"]) - recordsReturned:
                 print("  Predictions made:  " + str(len(prediction["open"]) - recordsReturned).rjust(3))
-                X, minMaxPrice, minMaxVol = self.scaleLSTMPred(prediction.drop(["trig"], axis = 1), look_back)
-                pred = self.lstm_model.predict(X)
-                prediction = self.extendPredictData(prediction, pred, minMaxPrice, minMaxVol, predLen)
+                X, minMaxPrice, minMaxVol = self.scaleLSTMPred(prediction, look_back)
+                pred = self.lstm_model.predict(X[-stepsPerPred:].reshape(stepsPerPred, len(X[0]), len(X[0][0])))
+                prediction = self.extendPredictData(prediction, pred, minMaxPrice, minMaxVol, predLen, stepsPerPred = stepsPerPred)                
         else: 
             prediction = []
     
@@ -271,16 +274,45 @@ class MLmodels:
     
     
     
-    def extendPredictData(self, prevInputs, predictions, priceScaler, volScaler, predLen):
+    def extendPredictData(self, prevInputs, pred, priceScaler, volScaler, predLen, stepsPerPred = 1):
         predFrame = pd.DataFrame()
         
-        predFrame["open"]  = predictions[0].flatten()
-        predFrame["high"]  = predictions[1].flatten()
-        predFrame["low"]   = predictions[2].flatten()
-        predFrame["close"] = predictions[3].flatten()
+        invPScale = np.array( [pred[0][-1][0:stepsPerPred],
+                               pred[1][-1][0:stepsPerPred],
+                               pred[2][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred],
+                               pred[3][-1][0:stepsPerPred]])
         
-        closeList = list(predFrame["close"])
+        invPScale = np.transpose(invPScale)
         
+        invPScale = priceScaler.inverse_transform(invPScale.reshape(stepsPerPred, -1))
+        
+        predOpen  = invPScale[:,0]
+        predHigh  = invPScale[:,1]
+        predLow   = invPScale[:,2]
+        predClose = invPScale[:,3]
+        predVol   = volScaler.inverse_transform(pred[4][-1][0:stepsPerPred].reshape(-1, 1)).flatten()
+        predTrig  = np.rint(pred[5][-1][0:stepsPerPred])
+        
+        closeList = list(prevInputs["close"])
+        closeList.extend([x.item() for x in predClose])
+        
+        predFrame["open"]  = prevInputs["open"].append(pd.Series(predOpen), ignore_index = True)
+        predFrame["high"]  = prevInputs["high"].append(pd.Series(predHigh), ignore_index = True)
+        predFrame["low"]   = prevInputs["low"].append(pd.Series(predLow), ignore_index = True)
+        predFrame["close"] = prevInputs["close"].append(pd.Series(predClose), ignore_index = True)
         predFrame["ma02" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 2)
         predFrame["ma04" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 4)
         predFrame["ma06" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 6)
@@ -294,20 +326,10 @@ class MLmodels:
         predFrame["ma30" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 30)
         predFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 40)
         predFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
-        predFrame["vol"  ] = predictions[4].flatten()
-        predFrame["trig"]  = predictions[5].flatten()
+        predFrame["vol"]   = prevInputs["vol"].append(pd.Series(predVol), ignore_index = True)
+        predFrame["trig"]  = prevInputs["trig"].append(pd.Series(predTrig), ignore_index = True)
         
-        columnList = predFrame.columns
-        
-        predArray = predFrame.to_numpy()
-        predArray[:,:17] = priceScaler.inverse_transform(predArray[:,:17])
-        predArray[:,17]  = volScaler.inverse_transform(predArray[:,17].reshape(-1,1)).flatten()
-        
-        predFrame = pd.DataFrame(predArray, columns = columnList)
-        
-        inputFrame = pd.concat([prevInputs, predFrame.iloc[-predLen:]], ignore_index = True)
-        
-        return inputFrame
+        return predFrame
     
     
     
@@ -317,6 +339,7 @@ class MLmodels:
                       look_back):
         
         inputFrame = inputFrame.iloc[-2*look_back:]
+        inputFrame = inputFrame.drop(columns = ["trig"])
         inputs = inputFrame.to_numpy()
         dataX = []
         lenInput = len(inputs)
@@ -344,7 +367,6 @@ class MLmodels:
             fitList = self.getFitArray(max(X[i,:,1]), min(X[i,:,2]), 17)  #should small (min) be 0?  or min('low')?
             minMaxPrice.fit(fitList)
             X[i,:,:17] = minMaxPrice.transform(X[i,:,:17])
-            
             X[i,:, 17] = minMaxVol.fit_transform(X[i,:,17].reshape(-1,1)).flatten()
             
         return X, minMaxPrice, minMaxVol
@@ -355,7 +377,7 @@ class MLmodels:
     def getLSTMPredictData(self, 
                            look_back = 120,
                            ticker = "", 
-                           predLen = 15):
+                           predLen = 20):
         
         loadedData, t = self.analysis.loadFromDB(tickerList = [ticker],
                                                  indicators = ["MA20", "OBV", "IDEAL"],
@@ -368,7 +390,6 @@ class MLmodels:
         
         loadedData['recordDate'] = pd.to_datetime(loadedData['recordDate'])
         loadedData.sort_values(by = ["ticker_symbol", "recordDate"], ascending=True, inplace=True)
-        # loadedData = loadedData.iloc[-(2*look_back + 1):]
         
         # ensure that the adjustment ratio does not cause a div-by-0 error
         assert min(loadedData["adjustment_ratio"]) > 0, "\n\n  ERROR: adjustment ratio has 0-value.  Verify correct input data.  Ticker = " + ticker
@@ -399,6 +420,7 @@ class MLmodels:
         inputFrame["ma40" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 40)
         inputFrame["ma50" ] = self.indicators._simpleMovingAverage(hist = closeList, periods = 50)
         inputFrame["vol"  ] = [v*1 for v in loadedData["volume"]]
+        inputFrame["trig" ] = [1 if t==1 else 0 for t in loadedData["ideal_return_trig"]]
         
         return inputFrame, recordsReturned
         
@@ -413,7 +435,7 @@ class MLmodels:
                    trainSize = -1, 
                    trainDate = "01-01-2020",
                    loadPrevious = True,
-                   predLen = 15,
+                   predLen = 20,
                    storeTrainingDataInRAM = False,
                    generateExtraSamples = False):
         
@@ -646,7 +668,7 @@ class MLmodels:
     
     
     
-    def createLSTMNetwork(self, look_back, predLen = 15):
+    def createLSTMNetwork(self, look_back, predLen = 20):
         # Model 1:
         # inLayer = Input(shape = (look_back, 7))
         # hidden1 = LSTM(120,  name='LSTM',    activation = "sigmoid")(inLayer)
@@ -892,7 +914,7 @@ class MLmodels:
                       outputs_c, 
                       look_back = 120, 
                       trainSize = 0.8, 
-                      predLen = 15):
+                      predLen = 20):
         # takes 2D np array of data with axes of time (i.e. trading days) and features,
         # and returns a 3D np array of batch, time, features
         
@@ -938,7 +960,7 @@ class MLmodels:
                              ticker = "", 
                              trainSize = -1, 
                              trainDate = "01-01-2020",
-                             predLen = 15):
+                             predLen = 20):
         
         loadedData, t = self.analysis.loadFromDB(tickerList = [ticker],
                                                  indicators = ["MA20", "OBV", "IDEAL"],
@@ -1273,7 +1295,7 @@ class MLmodels:
               confInterval = 0.2, 
               savePlt = False, 
               evaluate = True, 
-              predLen = 50, 
+              predLen = 100, 
               plotWindow=600,
               timestampstr = ""):
         
@@ -1379,7 +1401,7 @@ class MLmodels:
                   confInterval = 0.2, 
                   savePlt = False, 
                   evaluate = True, 
-                  predLen = 500, 
+                  predLen = 100, 
                   plotWindow = 600,
                   loadFromSave = True,
                   timestampstr = ""):
@@ -1512,9 +1534,6 @@ class MLmodels:
         
         
         
-        
-
-
 
     
 if __name__ == "__main__":
@@ -1530,25 +1549,14 @@ if __name__ == "__main__":
     
     # mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-17 14.30.20\\lstm_model_010.h5")
     
-    x = mod.LSTM_train(EpochsPerTicker = 1, 
-                        fullItterations = 25, 
-                        loadPrevious = False,
-                        look_back = 120, 
-                        trainSize = 0.9,
-                        predLen = 20, 
-                        storeTrainingDataInRAM = True,
-                        generateExtraSamples = True)
-    
-    setattr(mod.lrSched, 'initRate', 0.001)
-    
-    x = mod.LSTM_train(EpochsPerTicker = 1, 
-                        fullItterations = 100, 
-                        loadPrevious = True,
-                        look_back = 120, 
-                        trainSize = 0.9,
-                        predLen = 20, 
-                        storeTrainingDataInRAM = True,
-                        generateExtraSamples = True)
+    # x = mod.LSTM_train(EpochsPerTicker = 1, 
+    #                     fullItterations = 25, 
+    #                     loadPrevious = False,
+    #                     look_back = 120, 
+    #                     trainSize = 0.9,
+    #                     predLen = 20, 
+    #                     storeTrainingDataInRAM = True,
+    #                     generateExtraSamples = True)
     
     
     
@@ -1573,8 +1581,18 @@ if __name__ == "__main__":
     
     # mod.LSTM_train(EpochsPerTicker = 1, fullItterations = 50, loadPrevious = False, look_back = 250, trainSize = 0.9, predLen = 30, storeTrainingDataInRAM = True)
     
+    mod.LSTM_load(modelToLoad="D:\\UCSD ML Repositories\\Capstone\\Model\\static\\LSTMmodels\\2022-06-19_03.35.35\\lstm_model_119.h5")
     
-    
+    prediction, pred = mod.LSTM_eval(ticker = "A",
+                  savePlt  = True, 
+                  evaluate = False, 
+                  predict  = True,
+                  plotWindow = 600,
+                  timestampstr = "asdf",
+                  predLen = 20,
+                  extendedPredict = 50,
+                  look_back = 120,
+                  stepsPerPred = 2)
     
     
     
