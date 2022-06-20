@@ -29,7 +29,6 @@ app.config['SECRET_KEY'] = SECRET_KEY
 
 
 
-
 indicatorList = [("0",  'MA20'), 
                  ("1",  'MA50'), 
                  ("2",  'MACD12'), 
@@ -60,6 +59,12 @@ extraList = [("00",  'OPEN'),
              ("17",  'IDEAL_HIGH')]
 
 
+    
+    
+    
+mod = capstoneModels.MLmodels(dataBaseSaveFile = "./stockData.db", 
+                              dataBaseThreadCheck = False)
+
 
 
 class flaskFunctions:
@@ -77,12 +82,14 @@ class flaskFunctions:
                       evaluate = False, 
                       predict  = True,
                       plotWindow = 600,
-                      timestampstr = "asdf",
+                      timestampstr = "1",
                       predLen = 20,
                       extendedPredict = 50,
                       look_back = 120,
                       stepsPerPred = 10)
         
+    
+    
     
     # Create A Search Form
     class SearchForm(FlaskForm):
@@ -368,12 +375,6 @@ class flaskFunctions:
             self.mod.analysis.storeTriggers(tickerList = self.mod.analysis._tickerList)
             
     
-    
-    
-    
-mod = capstoneModels.MLmodels(dataBaseSaveFile = "./stockData.db", 
-                              dataBaseThreadCheck = False,
-                              splitDate = "2020-01-01")
 
 flaskFunc = flaskFunctions(mod)
 
@@ -600,7 +601,7 @@ def query():
 
 if __name__ == '__main__':
     
-    app.run(debug=True, host='0.0.0.0', port=8080, threaded=False)
+    app.run(debug=True, host='0.0.0.0', port=8080)
         
     # if "win" in sys.platform:
     #     app.run(debug=True)
