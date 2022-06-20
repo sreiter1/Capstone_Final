@@ -28,6 +28,9 @@ SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = SECRET_KEY
 
 
+import keras.backend.tensorflow_backend as tb
+tb._SYMBOLIC_SCOPE.value = True
+
 
 indicatorList = [("0",  'MA20'), 
                  ("1",  'MA50'), 
@@ -601,7 +604,7 @@ def query():
 
 if __name__ == '__main__':
     
-    app.run(debug=False, host='0.0.0.0', port=8080)
+    app.run(debug=True, host='0.0.0.0', port=8080)
         
     # if "win" in sys.platform:
     #     app.run(debug=True)
